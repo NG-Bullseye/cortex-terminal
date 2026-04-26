@@ -170,6 +170,11 @@ globals:
   - id: pending_fix_id
     type: std::string
     initial_value: '""'
+  # Cortex User-Blackout state (mirrors /api/blackout poll, drives slot3 + status LED)
+  - id: blackout_active
+    type: bool
+    initial_value: 'false'
+    restore_value: false
 
 # ── Sensors ────────────────────────────────────────────
 sensor:
@@ -304,6 +309,40 @@ time:
 # ── Fonts ──────────────────────────────────────────────
 # ── Feed Polling + Fix Dispatch ────────────────────────
 interval:
+  # Poll Cortex User-Blackout state -> Slot3 button visual + Status LED (T-13)
+  - interval: 5s
+    then:
+      - http_request.get:
+          url: "http://192.168.1.225:8900/api/blackout"
+          capture_response: true
+          max_response_buffer_size: 256
+          on_response:
+            - lambda: |-
+                if (response->status_code != 200 || body.empty()) {
+                  // Backend down: button als nicht klickbar markieren
+                  lv_obj_clear_flag(id(btn_slot3), LV_OBJ_FLAG_CLICKABLE);
+                  // T-13: bei Backend-Fehler LED aus (kein falsches Rot)
+                  id(status_led).turn_off().perform();
+                  return;
+                }
+                bool active = body.find("\"user_blackout\":true") != std::string::npos;
+                id(blackout_active) = active;
+                if (active) {
+                  lv_obj_add_state(id(btn_slot3), LV_STATE_CHECKED);
+                } else {
+                  lv_obj_clear_state(id(btn_slot3), LV_STATE_CHECKED);
+                }
+                lv_obj_add_flag(id(btn_slot3), LV_OBJ_FLAG_CLICKABLE);
+                // T-13: Status-LED rot bei Blackout, sonst aus (Schlafraum-Helligkeit)
+                if (active) {
+                  auto call = id(status_led).turn_on();
+                  call.set_rgb(1.0f, 0.0f, 0.0f);
+                  call.set_brightness(0.6f);
+                  call.perform();
+                } else {
+                  id(status_led).turn_off().perform();
+                }
+
   # Dispatch pending fix requests (from button taps)
   - interval: 1s
     then:
