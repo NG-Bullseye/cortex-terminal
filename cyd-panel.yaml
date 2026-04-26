@@ -652,7 +652,7 @@ lvgl:
                           Content-Type: "application/json"
                         body: '{"entity_id":"script.helles_licht_override"}'
 
-              # Slot 2: NABU (toggle automation, state-driven)
+              # Slot 2: SYNC (T-16: Vibe-Sync - Cortex reconciliation, kein Drift mehr)
               - button:
                   id: btn_slot2
                   styles: style_btn
@@ -662,13 +662,16 @@ lvgl:
                   height: 52
                   widgets:
                     - label:
-                        text: "NABU"
+                        text: "SYNC"
                         text_font: font_mono_16
                         align: CENTER
                   on_release:
-                    - logger.log: "SLOT2: NABU apply current slot"
-                    - homeassistant.service:
-                        service: rest_command.nabu_apply_current_slot
+                    - logger.log: "SLOT2: SYNC -> /api/sync_to_vibe"
+                    - http_request.post:
+                        url: "http://192.168.1.225:8900/api/sync_to_vibe"
+                        request_headers:
+                          Content-Type: "application/json"
+                        body: "{}"
 
               # Slot 3: BLACKOUT (toggle input_boolean, state-driven, amber when ON)
               - button:

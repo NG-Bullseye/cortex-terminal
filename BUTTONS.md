@@ -1,0 +1,94 @@
+# CYD Panel - Button Reference
+
+Alle Buttons in `cyd-panel.yaml`. Rot = Backend down (alle Typen).
+
+## Typen
+
+### Push (stateless)
+Style: `style_btn` / `style_btn_pressed`. Fuehrt Aktion aus, kein State.
+```yaml
+- button:
+    id: btn_slotX
+    styles: style_btn
+    pressed: { styles: style_btn_pressed }
+    width: 148
+    height: 52
+    widgets:
+      - label: { text: "LABEL", text_font: font_mono_16, align: CENTER }
+    on_release:
+      - homeassistant.service:
+          service: script.turn_on
+          data: { entity_id: script.example }
+```
+
+### State Switch (stateful)
+Wie Push, aber toggelt `input_boolean`. Braucht zusaetzlich einen `text_sensor` Listener:
+```yaml
+# text_sensor Sektion:
+- platform: homeassistant
+  id: slotX_state
+  entity_id: input_boolean.example
+  on_value:
+    then:
+      - if:
+          condition: { lambda: 'return x == "on";' }
+          then:
+            - lvgl.obj.update: { id: btn_slotX, bg_color: 0x2a1a00, border_color: 0xff8800, clickable: true }
+          else:
+            - if:
+                condition: { lambda: 'return x == "unavailable" || x.empty();' }
+                then:
+                  - lvgl.obj.update: { id: btn_slotX, bg_color: 0x1a0808, border_color: 0x440000, clickable: false }
+                else:
+                  - lvgl.obj.update: { id: btn_slotX, bg_color: 0x0d1b2a, border_color: 0x1b4965, clickable: true }
+```
+
+### Feed Button (dynamisch, C++)
+Erzeugt per Lambda im 30s-Intervall (Zeile ~361-436). Container: `feed_btn_container`.
+Fixable: `bg 0x1a0a0a, border 0xe94560`, pressed `0x3a1a1a`, nach fix `border 0x446688`.
+Info-only: kein Button, nur Label mit `text 0x00ff88`.
+Fix-Dispatch: 1s-Intervall POST nach `http://192.168.1.225:8900/api/feed/fix` (Zeile ~307-324).
+
+### Nav Button
+`style_nav` (inaktiv) / `style_nav_active` (aktuelle Seite). 75x24, `on_release: lvgl.page.show`.
+
+## Buttons nach Seite
+
+### CTRL (page_main, ~549-730)
+| ID | Label | Typ | Aktion | State-Entity |
+|----|-------|-----|--------|--------------|
+| btn_slot1 | LICHT | Push | `script.helles_licht_override` (via http_request.post!) | - |
+| btn_slot2 | NABU | Push | `rest_command.nabu_apply_current_slot` | - |
+| btn_slot3 | BLACKOUT | State | `input_boolean.toggle` | `input_boolean.nabu_blackout` |
+| btn_slot4 | REBOUND | State | `input_boolean.toggle` | `input_boolean.nabu_rebound` |
+| btn_slot5 | THINK | Push | `script.nabu_think` | - |
+
+State-Farben: BLACKOUT ON=amber(`0x2a1a00/0xff8800`), REBOUND ON=gruen(`0x0a2a0a/0x00ff44`).
+Listener: BLACKOUT ~229-259, REBOUND ~261-279. REBOUND hat kein unavailable-handling (TODO).
+
+### FEED (page_feed, ~798-904)
+Dynamisch — siehe Feed Button oben.
+
+### AUDIO (page_audio, ~909-1228)
+Alle Push, alle `homeassistant.action`. Target: `media_player.spotifyplus_leo_nox`.
+
+| Label | Aktion | Zeile |
+|-------|--------|-------|
+| \|<< | `media_player.media_previous_track` | ~965 |
+| PLAY | `media_player.media_play_pause` | ~982 |
+| >>\| | `media_player.media_next_track` | ~1001 |
+| VOL-/LOW/MID/HIGH/VOL+ | `script.tv_volume_*` | ~1033-1105 |
+| ECHO DOT/TOWER/SPEAKER | `script.switch_spotify_to_*` | ~1121-1164 |
+
+### DEV (page_dev, ~1233-1388)
+Nur Nav + Slider `slider_threshold` (~1267-1293).
+
+## Styles (Zeile ~471-500)
+| ID | bg | border | text |
+|----|----|--------|------|
+| style_btn | 0x0d1b2a | 0x1b4965 | 0x00ff88 |
+| style_btn_pressed | 0x1b4965 | 0x00ff88 | 0x00ffcc |
+| style_alert | 0x1a0a0a | 0xe94560 | 0xe94560 |
+| style_nav | 0x0f1a3e | 0x00ccff | 0x00ccff |
+| style_nav_active | 0x1b4965 | 0x00ff88 | 0x00ffcc |
+| style_feed | 0x0a0f1a | 0x1b4965 | 0x00ff88 |
