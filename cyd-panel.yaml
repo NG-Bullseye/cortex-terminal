@@ -846,7 +846,7 @@ lvgl:
                   height: 24
                   widgets:
                     - label:
-                        text: "DEV"
+                        text: "AIUI"
                         text_font: font_mono_12
                         align: CENTER
                   on_release:
@@ -957,7 +957,7 @@ lvgl:
                   height: 24
                   widgets:
                     - label:
-                        text: "DEV"
+                        text: "AIUI"
                         text_font: font_mono_12
                         align: CENTER
                   on_release:
@@ -1281,7 +1281,7 @@ lvgl:
                   height: 24
                   widgets:
                     - label:
-                        text: "DEV"
+                        text: "AIUI"
                         text_font: font_mono_12
                         align: CENTER
                   on_release:
@@ -1301,36 +1301,80 @@ lvgl:
             y: 0
             widgets:
               - label:
-                  text: "DEV // TOUCH CALIBRATION"
+                  text: "AIUI // CORTEX TERMINAL"
                   text_font: font_mono_12
                   text_color: 0x00ccff
                   align: CENTER
 
-
-        # Threshold label + value
+        # ── SCADA-Statusblock (live, ueber HA-text_sensor cortex_status spaeter) ──
         - label:
-            id: lbl_threshold_title
-            text: "THRESHOLD"
+            text: "+----------------- CORTEX -----------------+"
+            text_font: font_mono_12
+            text_color: 0x1b4965
+            x: 5
+            y: 32
+        - label:
+            id: lbl_aiui_slot
+            text: "[*] SLOT      --:--"
+            text_font: font_mono_12
+            text_color: 0x00ff88
+            x: 10
+            y: 48
+        - label:
+            id: lbl_aiui_zone
+            text: "[*] ZONE      --"
+            text_font: font_mono_12
+            text_color: 0x00ff88
+            x: 10
+            y: 64
+        - label:
+            id: lbl_aiui_blackout
+            text: "[ ] BLACKOUT  off"
             text_font: font_mono_12
             text_color: 0x00ccff
             x: 10
-            y: 38
-
+            y: 80
         - label:
-            id: lbl_threshold_val
-            text: "600"
-            text_font: font_mono_24
+            id: lbl_aiui_gaming
+            text: "[ ] GAMING    off"
+            text_font: font_mono_12
+            text_color: 0xff6b35
+            x: 10
+            y: 96
+        - label:
+            id: lbl_aiui_drift
+            text: "[ ] DRIFT     0"
+            text_font: font_mono_12
             text_color: 0x00ff88
             x: 10
-            y: 55
+            y: 112
+        - label:
+            text: "+------------------------------------------+"
+            text_font: font_mono_12
+            text_color: 0x1b4965
+            x: 5
+            y: 128
 
-        # Slider
+        # ── Touch-Calibration compact unten ──
+        - label:
+            text: "TOUCH-CAL"
+            text_font: font_mono_12
+            text_color: 0x444466
+            x: 10
+            y: 148
+        - label:
+            id: lbl_threshold_val
+            text: "1000"
+            text_font: font_mono_12
+            text_color: 0x00ff88
+            x: 90
+            y: 148
         - slider:
             id: slider_threshold
-            x: 10
-            y: 98
-            width: 280
-            height: 20
+            x: 130
+            y: 150
+            width: 160
+            height: 14
             min_value: 50
             max_value: 3000
             value: 1000
@@ -1349,39 +1393,13 @@ lvgl:
                     char buf[8];
                     snprintf(buf, sizeof(buf), "%d", (int)x);
                     return std::string(buf);
-              - logger.log:
-                  format: "DEV: threshold set to %d"
-                  args: [(int)x]
-
-        # Range hints
-        - label:
-            text: "50"
-            text_font: font_mono_12
-            text_color: 0x1b4965
-            x: 10
-            y: 122
-        - label:
-            text: "3000"
-            text_font: font_mono_12
-            text_color: 0x1b4965
-            x: 270
-            y: 122
-
-        # Last touch coordinates
         - label:
             id: lbl_dev_coords
-            text: "LAST: x=0    y=0"
-            text_font: font_mono_12
-            text_color: 0x00ff88
-            x: 10
-            y: 148
-
-        - label:
-            text: "NOISE FLOOR ~15-35 | TOUCH ~50-100"
+            text: "LAST: x=0  y=0"
             text_font: font_mono_12
             text_color: 0x444466
             x: 10
-            y: 168
+            y: 174
 
         # Bottom nav
         - obj:
@@ -1443,6 +1461,6 @@ lvgl:
                   height: 24
                   widgets:
                     - label:
-                        text: "DEV"
+                        text: "AIUI"
                         text_font: font_mono_12
                         align: CENTER
