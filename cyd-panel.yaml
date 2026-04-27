@@ -693,7 +693,8 @@ lvgl:
                         data:
                           entity_id: input_boolean.nabu_blackout
 
-              # Slot 4: REBOUND (toggle input_boolean, state-driven)
+              # Slot 4: FIRE TV (entspricht Live-Firmware) — ruft script.cortex_firetv,
+              # das ueber rest_command.cortex_firetv den /firetv-Endpoint von chat-service trifft.
               - button:
                   id: btn_slot4
                   styles: style_btn
@@ -703,15 +704,15 @@ lvgl:
                   height: 52
                   widgets:
                     - label:
-                        text: "REBOUND"
+                        text: "FIRE TV"
                         text_font: font_mono_12
                         align: CENTER
                   on_release:
-                    - logger.log: "SLOT4: REBOUND toggle"
+                    - logger.log: "SLOT4: FIRE TV"
                     - homeassistant.service:
-                        service: input_boolean.toggle
+                        service: script.turn_on
                         data:
-                          entity_id: input_boolean.nabu_rebound
+                          entity_id: script.cortex_firetv
 
               # Slot 5: THINK (stateless action, full width)
               - button:
@@ -1286,6 +1287,30 @@ lvgl:
                   text_font: font_mono_12
                   text_color: 0x00ccff
                   align: CENTER
+
+        # Gaming-Mode-Aktivierung — feuert gaming_on. Aus geht via Voice
+        # ("Cortex Gaming Mode aus") oder eigener Skript-Aufruf. State-aware
+        # Toggle braucht text_sensor + Cortex-Endpoint, kommt bei Bedarf.
+        - button:
+            id: btn_gaming
+            styles: style_btn
+            pressed:
+              styles: style_btn_pressed
+            width: 148
+            height: 40
+            x: 162
+            y: 38
+            widgets:
+              - label:
+                  text: "GAMING ON"
+                  text_font: font_mono_16
+                  align: CENTER
+            on_release:
+              - logger.log: "DEV: GAMING ON"
+              - homeassistant.service:
+                  service: script.turn_on
+                  data:
+                    entity_id: script.cortex_gaming_on
 
         # Threshold label + value
         - label:

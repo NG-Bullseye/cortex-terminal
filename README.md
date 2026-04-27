@@ -227,7 +227,7 @@ Siehe `testing.md` in diesem Repo. Pflicht-Run nach Aenderung:
 
 ## Verwandte Repos
 
-- `~/esp_repos/_templates/esp-home-template/` — generelles ESPHome-Template (BT-Volume-Control)
+- `~/esp_repos/bt-volume-control/` — generelles ESPHome-Template (BT-Volume-Control)
 - `~/esp_repos/bastion/` — anderes ESP32-Geraet (DNS-Adblocker, separates Subnet)
 - `~/cortex/` — Cortex-Code, das die HTTP-Endpoints bereitstellt
 - `~/homeassistant/_data/` — HA-Konfig
