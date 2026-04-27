@@ -613,10 +613,12 @@ lvgl:
                   align: RIGHT_MID
                   x: -4
 
-        # ── Slot Buttons Grid (5 slots, state-driven) ──
+        # ── Slot Buttons Grid (3x3, einheitlich 99x44) ──
+        # Dieselbe Geometrie auf allen Pages (CTRL/FEED/AUDIO/DEV).
+        # CTRL = User-designed (Leo). Slots 7-9 erstmal frei (TBD-Platzhalter).
         - obj:
             width: 310
-            height: 155
+            height: 144
             x: 5
             y: 30
             bg_opa: TRANSP
@@ -630,19 +632,15 @@ lvgl:
               pad_column: 6
               pad_row: 6
             widgets:
-              # Slot 1: LICHT (stateless action)
+              # Slot 1: LICHT — script.helles_licht_override (Cortex /api/licht/helles-licht via HA)
               - button:
                   id: btn_slot1
                   styles: style_btn
-                  pressed:
-                    styles: style_btn_pressed
-                  width: 148
-                  height: 52
+                  pressed: { styles: style_btn_pressed }
+                  width: 99
+                  height: 44
                   widgets:
-                    - label:
-                        text: "LICHT"
-                        text_font: font_mono_16
-                        align: CENTER
+                    - label: { text: "LICHT", text_font: font_mono_12, align: CENTER }
                   on_release:
                     - logger.log: "SLOT1: LICHT"
                     - http_request.post:
@@ -652,117 +650,114 @@ lvgl:
                           Content-Type: "application/json"
                         body: '{"entity_id":"script.helles_licht_override"}'
 
-              # Slot 2: SYNC (T-16: Vibe-Sync - Cortex reconciliation, kein Drift mehr)
+              # Slot 2: SYNC — Cortex reconciliation
               - button:
                   id: btn_slot2
                   styles: style_btn
-                  pressed:
-                    styles: style_btn_pressed
-                  width: 148
-                  height: 52
+                  pressed: { styles: style_btn_pressed }
+                  width: 99
+                  height: 44
                   widgets:
-                    - label:
-                        text: "SYNC"
-                        text_font: font_mono_16
-                        align: CENTER
+                    - label: { text: "SYNC", text_font: font_mono_12, align: CENTER }
                   on_release:
-                    - logger.log: "SLOT2: SYNC -> /api/sync_to_vibe"
+                    - logger.log: "SLOT2: SYNC"
                     - http_request.post:
                         url: "http://192.168.1.225:8900/api/sync_to_vibe"
-                        request_headers:
-                          Content-Type: "application/json"
+                        request_headers: { Content-Type: "application/json" }
                         body: "{}"
 
-              # Slot 3: BLACKOUT (toggle input_boolean, state-driven, amber when ON)
+              # Slot 3: BLACKOUT — toggle input_boolean (state-driven, amber wenn ON)
               - button:
                   id: btn_slot3
                   styles: style_btn
-                  pressed:
-                    styles: style_btn_pressed
-                  width: 148
-                  height: 52
+                  pressed: { styles: style_btn_pressed }
+                  width: 99
+                  height: 44
                   widgets:
-                    - label:
-                        text: "BLACKOUT"
-                        text_font: font_mono_12
-                        align: CENTER
+                    - label: { text: "BLACKOUT", text_font: font_mono_12, align: CENTER }
                   on_release:
                     - logger.log: "SLOT3: BLACKOUT toggle"
                     - homeassistant.service:
                         service: input_boolean.toggle
-                        data:
-                          entity_id: input_boolean.nabu_blackout
+                        data: { entity_id: input_boolean.nabu_blackout }
 
-              # Slot 4: FIRE TV (entspricht Live-Firmware) — ruft script.cortex_firetv,
-              # das ueber rest_command.cortex_firetv den /firetv-Endpoint von chat-service trifft.
+              # Slot 4: FIRE TV — script.cortex_firetv → chat-service /firetv/smart
               - button:
                   id: btn_slot4
                   styles: style_btn
-                  pressed:
-                    styles: style_btn_pressed
-                  width: 148
-                  height: 52
+                  pressed: { styles: style_btn_pressed }
+                  width: 99
+                  height: 44
                   widgets:
-                    - label:
-                        text: "FIRE TV"
-                        text_font: font_mono_12
-                        align: CENTER
+                    - label: { text: "FIRE TV", text_font: font_mono_12, align: CENTER }
                   on_release:
                     - logger.log: "SLOT4: FIRE TV"
                     - homeassistant.service:
                         service: script.turn_on
-                        data:
-                          entity_id: script.cortex_firetv
+                        data: { entity_id: script.cortex_firetv }
 
-              # Slot 5: THINK (stateless action, half-width — Slot 6 GAMING daneben)
+              # Slot 5: THINK — Nabu-Think-Skript (Cortex-Inferenz)
               - button:
                   id: btn_slot5
                   styles: style_btn
-                  pressed:
-                    styles: style_btn_pressed
-                  width: 148
-                  height: 36
+                  pressed: { styles: style_btn_pressed }
+                  width: 99
+                  height: 44
                   widgets:
-                    - label:
-                        text: ">> THINK <<"
-                        text_font: font_mono_12
-                        text_color: 0x00ccff
-                        align: CENTER
+                    - label: { text: ">> THINK <<", text_font: font_mono_12, text_color: 0x00ccff, align: CENTER }
                   on_release:
                     - logger.log: "SLOT5: THINK"
                     - homeassistant.service:
                         service: script.turn_on
-                        data:
-                          entity_id: script.nabu_think
+                        data: { entity_id: script.nabu_think }
 
-              # Slot 6: GAMING (Cortex Gaming-Mode an — aus geht via Voice/separates Skript)
+              # Slot 6: GAMING — Cortex Gaming-Mode an (aus via Voice / separates Skript)
               - button:
                   id: btn_slot6
                   styles: style_btn
-                  pressed:
-                    styles: style_btn_pressed
-                  width: 148
-                  height: 36
+                  pressed: { styles: style_btn_pressed }
+                  width: 99
+                  height: 44
                   widgets:
-                    - label:
-                        text: "GAMING ON"
-                        text_font: font_mono_12
-                        text_color: 0xff6b35
-                        align: CENTER
+                    - label: { text: "GAMING ON", text_font: font_mono_12, text_color: 0xff6b35, align: CENTER }
                   on_release:
                     - logger.log: "SLOT6: GAMING ON"
                     - homeassistant.service:
                         service: script.turn_on
-                        data:
-                          entity_id: script.cortex_gaming_on
+                        data: { entity_id: script.cortex_gaming_on }
 
-        # ── Nabu Message Feed (bottom) ──
+              # Slot 7-9: Platzhalter (TBD von Leo). Non-clickable, keine on_release.
+              - button:
+                  id: btn_slot7
+                  styles: style_btn
+                  width: 99
+                  height: 44
+                  widgets:
+                    - label: { text: "—", text_font: font_mono_12, text_color: 0x1b4965, align: CENTER }
+
+              - button:
+                  id: btn_slot8
+                  styles: style_btn
+                  width: 99
+                  height: 44
+                  widgets:
+                    - label: { text: "—", text_font: font_mono_12, text_color: 0x1b4965, align: CENTER }
+
+              - button:
+                  id: btn_slot9
+                  styles: style_btn
+                  width: 99
+                  height: 44
+                  widgets:
+                    - label: { text: "—", text_font: font_mono_12, text_color: 0x1b4965, align: CENTER }
+
+        # ── Cortex Statuskanal (bottom) — pro Page repliziert ──
         - obj:
             styles: style_feed
             width: 310
-            height: 42
+            height: 38
             x: 5
-            y: 168
+            y: 176
             widgets:
               - label:
                   text: ">"
