@@ -714,13 +714,13 @@ lvgl:
                         data:
                           entity_id: script.cortex_firetv
 
-              # Slot 5: THINK (stateless action, full width)
+              # Slot 5: THINK (stateless action, half-width — Slot 6 GAMING daneben)
               - button:
                   id: btn_slot5
                   styles: style_btn
                   pressed:
                     styles: style_btn_pressed
-                  width: 302
+                  width: 148
                   height: 36
                   widgets:
                     - label:
@@ -734,6 +734,27 @@ lvgl:
                         service: script.turn_on
                         data:
                           entity_id: script.nabu_think
+
+              # Slot 6: GAMING (Cortex Gaming-Mode an — aus geht via Voice/separates Skript)
+              - button:
+                  id: btn_slot6
+                  styles: style_btn
+                  pressed:
+                    styles: style_btn_pressed
+                  width: 148
+                  height: 36
+                  widgets:
+                    - label:
+                        text: "GAMING ON"
+                        text_font: font_mono_12
+                        text_color: 0xff6b35
+                        align: CENTER
+                  on_release:
+                    - logger.log: "SLOT6: GAMING ON"
+                    - homeassistant.service:
+                        service: script.turn_on
+                        data:
+                          entity_id: script.cortex_gaming_on
 
         # ── Nabu Message Feed (bottom) ──
         - obj:
@@ -749,9 +770,11 @@ lvgl:
                   text_color: 0x1b4965
                   x: 0
                   y: 0
+              # Cortex-Statuskanal: aktive Mode + Slot. Faengt cortex_status
+              # text_sensor wenn HA einen exposed (heute Default-Text).
               - label:
                   id: lbl_nabu_msg
-                  text: "SYSTEMS NOMINAL"
+                  text: "Cortex bereit · Mode: Idle"
                   text_font: font_mono_12
                   text_color: 0x00ff88
                   x: 12
@@ -1288,29 +1311,6 @@ lvgl:
                   text_color: 0x00ccff
                   align: CENTER
 
-        # Gaming-Mode-Aktivierung — feuert gaming_on. Aus geht via Voice
-        # ("Cortex Gaming Mode aus") oder eigener Skript-Aufruf. State-aware
-        # Toggle braucht text_sensor + Cortex-Endpoint, kommt bei Bedarf.
-        - button:
-            id: btn_gaming
-            styles: style_btn
-            pressed:
-              styles: style_btn_pressed
-            width: 148
-            height: 40
-            x: 162
-            y: 38
-            widgets:
-              - label:
-                  text: "GAMING ON"
-                  text_font: font_mono_16
-                  align: CENTER
-            on_release:
-              - logger.log: "DEV: GAMING ON"
-              - homeassistant.service:
-                  service: script.turn_on
-                  data:
-                    entity_id: script.cortex_gaming_on
 
         # Threshold label + value
         - label:
