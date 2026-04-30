@@ -666,7 +666,12 @@ lvgl:
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
 
-              # Slot 3: BLACKOUT — toggle input_boolean (state-driven, amber wenn ON)
+              # Slot 3: BLACKOUT — toggle Cortex User-Blackout (state-driven, amber wenn ON)
+              # Bugfix: vorher toggelte der Button input_boolean.nabu_blackout in HA,
+              # waehrend der 5s-Poll oben /api/blackout (user_blackout) liest →
+              # Button-Visual und Button-Action standen auf zwei verschiedenen
+              # State-Quellen. Press hatte keinen Effekt auf das angezeigte State.
+              # Fix: direkt /api/blackout/{on,off} POSTen, basierend auf aktuellem Poll-State.
               - button:
                   id: btn_slot3
                   styles: style_btn
@@ -676,10 +681,20 @@ lvgl:
                   widgets:
                     - label: { text: "BLACKOUT", text_font: font_mono_12, align: CENTER }
                   on_release:
-                    - logger.log: "SLOT3: BLACKOUT toggle"
-                    - homeassistant.service:
-                        service: input_boolean.toggle
-                        data: { entity_id: input_boolean.nabu_blackout }
+                    - logger.log: "SLOT3: BLACKOUT toggle (cortex user_blackout)"
+                    - if:
+                        condition:
+                          lambda: 'return id(blackout_active);'
+                        then:
+                          - http_request.post:
+                              url: "http://192.168.1.225:8900/api/blackout/off"
+                              request_headers: { Content-Type: "application/json" }
+                              body: "{}"
+                        else:
+                          - http_request.post:
+                              url: "http://192.168.1.225:8900/api/blackout/on"
+                              request_headers: { Content-Type: "application/json" }
+                              body: "{}"
 
               # Slot 4: FIRE TV — script.cortex_firetv → chat-service /firetv/smart
               - button:
