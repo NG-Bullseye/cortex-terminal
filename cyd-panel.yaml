@@ -230,37 +230,9 @@ text_sensor:
             text: !lambda 'return x.c_str();'
 
   # ── Slot State Streams (HA → Button color) ──
-  - platform: homeassistant
-    name: "Slot3 BLACKOUT state"
-    id: slot3_state
-    entity_id: input_boolean.nabu_blackout
-    on_value:
-      then:
-        - if:
-            condition:
-              lambda: 'return x == "on";'
-            then:
-              - lvgl.obj.update:
-                  id: btn_slot3
-                  bg_color: 0x2a1a00
-                  border_color: 0xff8800
-                  clickable: true
-            else:
-              - if:
-                  condition:
-                    lambda: 'return x == "unavailable" || x.empty();'
-                  then:
-                    - lvgl.obj.update:
-                        id: btn_slot3
-                        bg_color: 0x1a0808
-                        border_color: 0x440000
-                        clickable: false
-                  else:
-                    - lvgl.obj.update:
-                        id: btn_slot3
-                        bg_color: 0x0d1b2a
-                        border_color: 0x1b4965
-                        clickable: true
+  # Slot3 BLACKOUT state: NICHT mehr via HA, Cortex-poll (interval 5s unten)
+  # ist die einzige Wahrheit. Der HA-Helper input_boolean.nabu_blackout war
+  # unavailable und hat den Button rot+dead gesetzt → entfernt.
 
   - platform: homeassistant
     name: "Slot4 REBOUND state"
@@ -319,18 +291,25 @@ interval:
           on_response:
             - lambda: |-
                 if (response->status_code != 200 || body.empty()) {
-                  // Backend down: button als nicht klickbar markieren
+                  // Backend down: ROT, kein State holbar
                   lv_obj_clear_flag(id(btn_slot3), LV_OBJ_FLAG_CLICKABLE);
-                  // T-13: bei Backend-Fehler LED aus (kein falsches Rot)
+                  lv_obj_set_style_bg_color(id(btn_slot3), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_slot3), lv_color_hex(0xff0000), 0);
                   id(status_led).turn_off().perform();
                   return;
                 }
                 bool active = body.find("\"user_blackout\":true") != std::string::npos;
                 id(blackout_active) = active;
                 if (active) {
+                  // active = GRÜN
                   lv_obj_add_state(id(btn_slot3), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_slot3), lv_color_hex(0x0d2a14), 0);
+                  lv_obj_set_style_border_color(id(btn_slot3), lv_color_hex(0x00ff88), 0);
                 } else {
+                  // inaktiv = default-blau (gleich wie restliche idle slots)
                   lv_obj_clear_state(id(btn_slot3), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_slot3), lv_color_hex(0x0d1b2a), 0);
+                  lv_obj_set_style_border_color(id(btn_slot3), lv_color_hex(0x1b4965), 0);
                 }
                 lv_obj_add_flag(id(btn_slot3), LV_OBJ_FLAG_CLICKABLE);
                 // T-13: Status-LED rot bei Blackout, sonst aus (Schlafraum-Helligkeit)
