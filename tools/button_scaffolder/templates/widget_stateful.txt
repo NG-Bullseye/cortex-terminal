@@ -1,0 +1,20 @@
+              # Slot ${slot}: ${ID} — POST ${endpoint} (toggle), GET ${state_endpoint} (state)
+              # Visual via 5s-interval-poll (gruen=active, blau=idle, rot=error)
+              - button:
+                  id: ${btn_id}
+                  styles: style_btn
+                  pressed: { styles: style_btn_pressed }
+                  width: 99
+                  height: 44
+                  widgets:
+                    - label:
+                        id: ${lbl_id}
+                        text: "${idle_label}"
+                        text_font: font_mono_12
+                        align: CENTER
+                  on_release:
+                    - logger.log: "SLOT${slot}: ${ID} -> POST ${endpoint}"
+                    - http_request.post:
+                        url: "${action_url}"
+                        request_headers: { Content-Type: "application/json" }
+                        body: "{}"

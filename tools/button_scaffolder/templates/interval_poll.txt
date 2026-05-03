@@ -1,0 +1,32 @@
+  # Poll Cortex ${id} state -> ${btn_id} visual (gruen=active, blau=idle, rot=error)
+  - interval: ${poll_interval_s}s
+    then:
+      - http_request.get:
+          url: "${state_url}"
+          capture_response: true
+          max_response_buffer_size: 256
+          on_response:
+            - lambda: |-
+                if (response->status_code != 200 || body.empty()) {
+                  // Backend down: ROT, kein State holbar
+                  lv_obj_clear_flag(id(${btn_id}), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0xff0000), 0);
+                  return;
+                }
+                bool active = body.find("${match_substring}") != std::string::npos;
+                id(${global_id}) = active;
+                if (active) {
+                  // active = GRUEN
+                  lv_obj_add_state(id(${btn_id}), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x0d2a14), 0);
+                  lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0x00ff88), 0);
+                  lv_label_set_text(id(${lbl_id}), "${active_label}");
+                } else {
+                  // idle = default-blau
+                  lv_obj_clear_state(id(${btn_id}), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x0d1b2a), 0);
+                  lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0x1b4965), 0);
+                  lv_label_set_text(id(${lbl_id}), "${idle_label}");
+                }
+                lv_obj_add_flag(id(${btn_id}), LV_OBJ_FLAG_CLICKABLE);

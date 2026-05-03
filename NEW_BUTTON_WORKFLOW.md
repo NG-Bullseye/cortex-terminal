@@ -1,131 +1,177 @@
-# Workflow: Neuer Button im CYD Panel → HA Script
+# Workflow: Neuer Button (Scaffolder-Driven)
 
-Schritt-fuer-Schritt Anleitung, um einen neuen Push-Button im `cortex-terminal`
-(ESPHome auf CYD) an ein Home Assistant Script zu haengen. Vorbild: `FIRE TV`
-Button in `cyd-panel.yaml` (~Zeile 678-693) → `script.cortex_firetv` in HA.
+Schritt-fuer-Schritt fuer einen neuen Button auf dem CYD-Panel. Spec-driven,
+direkt zu Cortex (kein HA-Detour). Vorbild: Slot 3 Blackout-Button
+(`cyd-panel.yaml` ~672-697 + Polling ~302-342 + Global ~192-196).
 
-Repo: `~/esp_repos/cortex-terminal/`
-Hardware: CYD Panel (ESPHome, LVGL)
-Ziel HA: `~/homeassistant/_data/`
+> **Schema-Referenz:** `BUTTON_SPEC.md` · **Style/Visual:** `BUTTONS.md` · **Anker:** `AGENTS.md`
 
 ## Architektur
 
 ```
-[CYD Button] --on_release--> [homeassistant.service] --> [HA Script]
-                                                            |
-                                                 (optional) v
-                                                     [rest_command] --> [Backend-Endpoint]
-                                                            |
-                                                            v
-                                                     [Geraete/Cortex/etc.]
+[CYD Tap] --on_release--> [http_request.post]
+                              ↓
+                    http://192.168.1.225:8900/api/<endpoint>   (Cortex)
+                              ↓
+                    Event-Emit / Action-Dispatch / Engine-Call
+                              ↓
+                    Devices / Spotify / HA-Service (Cortex-intern)
+
+[Optional, nur stateful Buttons]
+[5s interval] --http_request.get--> /api/<state-endpoint>
+                              ↓
+                    Lambda: substring-match → bg/border/clickable
 ```
 
-Der Button ruft immer ein **HA Script** auf — nie direkt ein `rest_command`
-oder eine Geraete-Action. Das Script ist die Abstraktionsschicht: wenn sich
-das Backend aendert, bleibt der Button stabil.
+**Kein HA-Script-Detour mehr.** Wenn ein Button parallel via Voice/Alexa
+schaltbar sein soll, separates `script.<name>` in HA → ruft denselben
+`/api/<endpoint>` per `rest_command`. Das ist ein **separater** Schritt,
+nicht Teil dieses Workflows.
+
+## Voraussetzungen
+
+- Cortex-Container laeuft (`docker ps | grep cortex`)
+- CYD ist online (`ping 192.168.1.240`)
+- ESPHome installiert
+- Python 3.11+ (Scaffolder-Runtime)
 
 ## Schritte
 
-### 1. Button in `cyd-panel.yaml` anlegen
+### 1. Spec anlegen
 
-Auf der richtigen Seite (meist `page_main` / CTRL) einen Slot ergaenzen.
-Struktur analog zu FIRE TV (Zeile ~677-693):
+`specs/buttons/<id>.yaml` schreiben. Schema: `BUTTON_SPEC.md`. Beispiele:
 
-```yaml
-- button:
-    id: btn_slotN                   # fortlaufende ID, eindeutig
-    styles: style_btn
-    pressed:
-      styles: style_btn_pressed
-    width: 96                       # an Grid-Layout der Seite anpassen
-    height: 52
-    widgets:
-      - label:
-          text: "MEIN BTN"          # Label, max ~8 Zeichen bei font_mono_12
-          text_font: font_mono_12
-          align: CENTER
-    on_release:
-      - logger.log: "SLOTN: mein_button"
-      - homeassistant.service:
-          service: script.mein_button
-```
+- `specs/buttons/_example_stateless.yaml` — stateless Push-Button
+- `specs/buttons/_example_stateful.yaml` — stateful Toggle-Button mit Polling
 
-Referenz fuer Styles, Typen und Layout: `BUTTONS.md`.
+Beim Anlegen:
+- `id` muss eindeutig sein (Scaffolder validiert)
+- `slot` muss aktuell ein `—`-Placeholder sein
+- `endpoint` darf nicht schon in `~/cortex/main.py` registriert sein
 
-### 2. HA Script in `scripts.yaml` definieren
-
-Script als schlanker Wrapper. Bei externen Backends via `rest_command`
-kapseln (siehe FIRE TV):
-
-```yaml
-mein_button:
-  alias: Cortex - Mein Button
-  sequence:
-    - action: rest_command.mein_button      # oder: service: light.turn_on, script.xy, etc.
-  mode: single
-  icon: mdi:gesture-tap-button
-```
-
-Variante ohne externen Endpoint (z.B. direkt Geraet schalten):
-
-```yaml
-mein_button:
-  alias: Cortex - Mein Button
-  sequence:
-    - action: light.turn_on
-      target: { entity_id: light.wohnzimmer }
-  mode: single
-```
-
-### 3. (Optional) `rest_command` in `configuration.yaml`
-
-Nur noetig, wenn ein Backend-Endpoint angesprochen wird (Cortex,
-eigener HTTP-Service). Beispiel analog FIRE TV (Zeile ~78-81):
-
-```yaml
-rest_command:
-  mein_button:
-    url: "http://172.20.0.10:8900/api/mein/endpoint"   # Cortex-Container IP
-    method: POST
-    timeout: 10
-```
-
-Wichtig:
-- Cortex-Container: `172.20.0.10:8900`
-- HA-Container: `172.20.0.3:8123`
-- Host/LAN: `192.168.1.225`
-
-### 4. Deploy
+### 2. Scaffolder ausfuehren
 
 ```bash
-# HA: Config neu laden (Scripts + rest_command)
-# UI: Entwicklerwerkzeuge → YAML → "Skripte neu laden"
-# oder MCP: ha__reload_yaml / HA neu starten
-
-# ESP: CYD Panel flashen
 cd ~/esp_repos/cortex-terminal
-esphome run cyd-panel.yaml
+python -m tools.button_scaffolder.scaffold_button specs/buttons/<id>.yaml
 ```
 
-### 5. Test
+Output: vier framed Bloecke an stdout, mit Insertion-Anweisungen.
 
-1. HA UI: Script manuell ausfuehren → Zielwirkung pruefen
-2. CYD: Button druecken → Logserial zeigt `SLOTN: mein_button`
-3. HA Logs: Script-Trace pruefen (`Entwicklerwerkzeuge → Skripte → Trace`)
+| Block | Zielort | Wann | Was |
+|---|---|---|---|
+| **1** | `cyd-panel.yaml` `globals:` | nur stateful | `<id>_active` Bool-Global |
+| **2** | `cyd-panel.yaml` `interval:` | nur stateful | 5s GET-Poll + Lambda |
+| **3** | `cyd-panel.yaml` `pages:` | immer | LVGL-Widget + on_release |
+| **4** | `~/cortex/main.py` | wenn Endpoint neu | FastAPI-Route-Stub |
+
+Stateless ohne neuen Endpoint = nur Block 3. Stateful mit neuem Endpoint =
+alle vier. Scaffolder sagt im Output explizit welche Bloecke noetig sind.
+
+### 3. Bloecke einsetzen
+
+Jeder Block hat einen Anker-Kommentar fuer die Suche. Beispiel-Anker fuer
+Block 3 auf CTRL: `# Slot 7-9: Platzhalter` (`cyd-panel.yaml` ~742). Block 3
+ersetzt den `—`-Placeholder-Block.
+
+Block 1 (globals): unter `# Cortex User-Blackout state` (~192) anhaengen.
+
+Block 2 (interval): nach dem `# Poll Cortex User-Blackout state` Block (~342)
+als neuen Sibling im `interval:` einsetzen.
+
+Block 4 (FastAPI): in `~/cortex/main.py` unter den existierenden
+`api.add_api_route(...)`-Aufrufen anhaengen. Handler-Stub wird ueber den
+existierenden Handlern (z.B. neben `blackout_on`) eingefuegt.
+
+### 4. Cortex-Handler-Body schreiben
+
+Block 4 ist ein **Stub** mit `# TODO`. Leo (oder ein Cortex-Subagent)
+schreibt die echte Logik. Patterns:
+
+```python
+# Pattern A: Event emittieren (haeufig)
+from events.<modul> import <EventName>
+gateway.emit(<EventName>(...))
+
+# Pattern B: Direkter Store-Dispatch
+store.dispatch(CortexAction(action=store_actions.<x>(),
+                            keys=USER_KEYS, source="api.<id>"))
+
+# Pattern C: Engine-Methode aufrufen
+await engine.<name>.<method>()
+```
+
+Antwort-Shape: bei stateful-Buttons MUSS der GET-Endpoint JSON liefern
+mit dem `response_field` als Top-Level-Leaf — sonst funktioniert der
+Substring-Parser im Lambda nicht. Beispiel: Spec `response_field: musik` →
+GET-Antwort enthaelt `{"musik": true, ...}` (egal in welchem Kontext, solange
+`"musik":true` als Substring auftaucht).
+
+### 5. Cortex deployen (wenn Block 4 noetig war)
+
+```bash
+cd ~/cortex
+docker compose build cortex && docker compose up -d cortex
+curl -s http://localhost:8900<endpoint> | head    # Smoke-Test
+```
+
+### 6. CYD flashen
+
+```bash
+cd ~/esp_repos/cortex-terminal
+ping -c 2 -W 2 192.168.1.240                              # Reachability
+esphome compile cyd-panel.yaml                            # ~150s
+esphome upload  cyd-panel.yaml --device 192.168.1.240     # ~6s OTA
+ping -c 1 192.168.1.240                                   # verify back
+```
+
+Details + Gotchas: `AGENTS.md` §"Build / Flash (OTA)".
+
+### 7. Test
+
+1. **Endpoint manuell:** `curl -X POST http://localhost:8900<endpoint>`
+   → erwartete Reaktion (Logs in cortex-Container).
+2. **State-Endpoint manuell:** `curl http://localhost:8900<state.endpoint>`
+   → JSON enthaelt `response_field: <active_value>`.
+3. **Button am Geraet:** Tap → `logger.log` in seriellen ESPHome-Logs sichtbar
+   (`esphome logs cyd-panel.yaml --device 192.168.1.240`).
+4. **State-Sync:** State im Cortex aendern (z.B. zweiter Endpoint-Call) →
+   Button-Farbe folgt innerhalb `poll_interval_s`.
+5. **Error-Handling:** `docker stop cortex` → Button wird rot + non-clickable.
+   `docker start cortex` → recover.
 
 ## Checkliste
 
-- [ ] Neuer Slot in `cyd-panel.yaml` (eindeutige `id`, passende `width/height`)
-- [ ] `on_release` ruft `homeassistant.service: script.<name>`
-- [ ] Script in `scripts.yaml` (mit `alias`, `mode: single`, `icon`)
-- [ ] Falls externes Backend: `rest_command` in `configuration.yaml`
-- [ ] `BUTTONS.md` aktualisiert (Eintrag in Buttons-Tabelle)
-- [ ] CYD geflasht + HA Config neu geladen
-- [ ] Manueller End-to-End-Test
+- [ ] `specs/buttons/<id>.yaml` angelegt + valide
+- [ ] Scaffolder ohne Errors gelaufen
+- [ ] Block 1 (Global, falls stateful) eingesetzt
+- [ ] Block 2 (Interval-Poll, falls stateful) eingesetzt
+- [ ] Block 3 (Widget) eingesetzt — `—`-Placeholder ersetzt
+- [ ] Block 4 (FastAPI-Route, falls Endpoint neu) eingesetzt
+- [ ] Cortex-Handler-Body ausgefleischt + getestet
+- [ ] Cortex rebuild + restart (wenn Block 4 noetig war)
+- [ ] CYD compile + OTA erfolgreich
+- [ ] Endpoint via curl reagiert
+- [ ] Button reagiert auf Tap
+- [ ] State-Sync verifiziert (stateful)
+- [ ] Error-Recovery verifiziert (stateful)
+- [ ] `BUTTONS.md` Tabelle ergaenzt
+- [ ] Spec committed
+
+## Migration alter HA-Detour-Buttons
+
+Existierende Buttons (z.B. Slot 5 THINK → `script.nabu_think`) koennen
+nachtraeglich auf direct-to-Cortex umgestellt werden:
+
+1. Spec fuer den Button schreiben mit dessen aktueller `id` (z.B. `id: think`)
+2. Cortex-Endpoint anlegen, der das HA-Script-Verhalten emuliert
+3. Block 3 ersetzt das alte `homeassistant.service:`-Widget
+4. HA-Script + `rest_command` koennen optional bleiben fuer Voice-Pfad
 
 ## Referenzen
 
-- Button-Typen & Styles: `BUTTONS.md`
-- FIRE TV Button: `cyd-panel.yaml` ~Zeile 677-693
-- `script.cortex_firetv`: `~/homeassistant/_data/scripts.yaml` ~Zeile 450
-- `rest_command.cortex_firetv`: `~/homeassistant/_data/configuration.yaml` ~Zeile 78
+- Schema: `BUTTON_SPEC.md`
+- Visuell: `BUTTONS.md`
+- Beispiele: `specs/buttons/_example_*.yaml`
+- Vorbild-Implementation: Slot 3 Blackout-Button (`cyd-panel.yaml` ~672-697 + ~302-342 + ~192-196)
+- Cortex-Endpoint-Pattern: `~/cortex/main.py` Suche nach `add_api_route`

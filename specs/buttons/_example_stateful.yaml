@@ -1,0 +1,16 @@
+# EXAMPLE — stateful toggle button with state-poll.
+# Schema-Referenz: BUTTON_SPEC.md
+# Copy this file, rename to <id>.yaml, fill in.
+
+id: my_toggle                # snake_case, eindeutig
+label: "TOGGLE"              # Default-Label (kann durch active/idle_label ueberschrieben werden)
+page: CTRL
+slot: 7
+endpoint: /api/my_toggle     # POST: flippt state intern in Cortex
+state:
+  endpoint: /api/my_toggle/state   # GET: liefert aktuellen state als JSON
+  poll_interval_s: 5               # int >= 2
+  response_field: my_toggle        # Top-Level-Leaf-Key im JSON
+  active_value: true               # Wert der "gruen/active" bedeutet
+  active_label: "ACTIVE"           # optional
+  idle_label:   "IDLE"             # optional

@@ -1,0 +1,9 @@
+# EXAMPLE — stateless push button.
+# Schema-Referenz: BUTTON_SPEC.md
+# Copy this file, rename to <id>.yaml, fill in.
+
+id: my_action               # snake_case, eindeutig
+label: "DO IT"              # max ~8 chars
+page: CTRL                  # CTRL | AUDIO | DEV
+slot: 8                     # 1..9 (CTRL only)
+endpoint: /api/my_action    # POST-Endpoint im Cortex

@@ -1,0 +1,5 @@
+  # Cortex ${id} state (mirrors GET ${state_endpoint} poll, drives ${btn_id} visual)
+  - id: ${global_id}
+    type: bool
+    initial_value: 'false'
+    restore_value: false

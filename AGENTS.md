@@ -50,12 +50,37 @@ ping -c 1 192.168.1.240                              # verify back online
 
 Workflow fuer neue Buttons: `NEW_BUTTON_WORKFLOW.md`.
 
+## Button-Scaffolder
+
+Spec-driven Button-Generierung. Eine YAML-Spec → vier framed Code-Bloecke an
+stdout, die Leo (oder ein dummer LLM) in `cyd-panel.yaml` + `~/cortex/main.py`
+einpaste-t. Jeder Button = 1 POST-Endpoint (+ optional 1 GET-State-Endpoint).
+Direct-to-Cortex, kein HA-Detour.
+
+```bash
+python -m tools.button_scaffolder.scaffold_button specs/buttons/<id>.yaml
+```
+
+| Komponente | Datei |
+|---|---|
+| **Workflow** (Schritt-fuer-Schritt) | `NEW_BUTTON_WORKFLOW.md` |
+| **Spec-Schema** (Feld-Referenz) | `BUTTON_SPEC.md` |
+| **Style/Visual-Konventionen** | `BUTTONS.md` |
+| **Code + Templates** | `tools/button_scaffolder/` |
+| **Specs (Single Source of Truth)** | `specs/buttons/*.yaml` |
+
+Button-Typen: **stateless** (Push, sendet POST) und **stateful** (mit 5s GET-Poll
++ Farb-Mapping: gruen=active, blau=idle, rot=error). Vorbild-Implementation:
+Slot 3 Blackout-Button.
+
 ## Doku-Reihenfolge fuer Agenten
 1. `AGENTS.md` (du bist hier)
 2. `CLAUDE.md` — Projekt-Memory + LLM-Pointer
 3. `README.md` — Hardware-Pinout, ausfuehrliche Architektur
-4. `BUTTONS.md` — Button-Type-Reference
-5. `testing.md` — Test-Verfahren
+4. `NEW_BUTTON_WORKFLOW.md` — Wenn ein neuer Button gebaut werden soll
+5. `BUTTON_SPEC.md` — Schema-Referenz beim Spec-Schreiben
+6. `BUTTONS.md` — Button-Type-Taxonomy + Style-Konventionen
+7. `testing.md` — Test-Verfahren
 
 ## Ground Truth
 **Leo.** Real-Beobachtung schlaegt Code-Stand. cyd-panel.yaml im Repo kann hinter dem Live-Geraet zurueck sein.
