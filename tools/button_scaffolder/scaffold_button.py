@@ -116,8 +116,11 @@ def _err_and_exit(code: int, msg: str) -> int:
 
 
 # ── Collision checks (read-only) ──────────────────────────────────────────
-def check_cyd_collisions(spec: dict[str, Any], cyd_text: str) -> str:
-    """Returns the slot7-style placeholder block to be REPLACED, or '' if not CTRL."""
+def check_cyd_collisions(spec: dict[str, Any], cyd_text: str, migrate: bool = False) -> str:
+    """Returns the slot7-style placeholder block to be REPLACED, or '' if not CTRL.
+
+    With migrate=True, also accepts existing wired buttons (Block 3 will replace them).
+    """
     bid = spec["id"]
     btn_id = f"btn_{bid}"
     lbl_id = f"lbl_{bid}"
@@ -147,11 +150,11 @@ def check_cyd_collisions(spec: dict[str, Any], cyd_text: str) -> str:
     block = m.group(1)
     # Heuristic: is it still a placeholder? Placeholder has label "—" and no on_release.
     is_placeholder = ('text: "—"' in block) and ("on_release" not in block)
-    if not is_placeholder:
+    if not is_placeholder and not migrate:
         sys.exit(_err_and_exit(
             2,
             f"slot {slot} (id={slot_id}) is not a placeholder — already wired. "
-            f"Pick a free slot or migrate the existing button explicitly."
+            f"Use --migrate to replace an existing button."
         ))
     return block
 
@@ -228,11 +231,16 @@ def build_context(spec: dict[str, Any]) -> dict[str, str]:
 
 # ── Main ──────────────────────────────────────────────────────────────────
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    args = [a for a in argv[1:] if not a.startswith("--")]
+    flags = {a for a in argv[1:] if a.startswith("--")}
+    migrate = "--migrate" in flags
+
+    if len(args) != 1:
         print(__doc__, file=sys.stderr)
+        print("\nFlags:\n  --migrate    replace an existing wired button on the same slot", file=sys.stderr)
         return 1
 
-    spec_path = Path(argv[1])
+    spec_path = Path(args[0])
     if not spec_path.exists():
         return _err_and_exit(1, f"spec file not found: {spec_path}")
 
@@ -253,8 +261,11 @@ def main(argv: list[str]) -> int:
 
     # Collision checks
     cyd_text = CYD_YAML.read_text()
-    placeholder = check_cyd_collisions(spec, cyd_text)
-    _ok(f"cyd-panel.yaml: id '{spec['id']}' free, slot ready")
+    placeholder = check_cyd_collisions(spec, cyd_text, migrate=migrate)
+    if migrate:
+        _ok(f"cyd-panel.yaml: id '{spec['id']}' free, slot will be MIGRATED (existing button replaced)")
+    else:
+        _ok(f"cyd-panel.yaml: id '{spec['id']}' free, slot ready")
 
     endpoints_to_check = [spec["endpoint"]]
     if is_stateful:
