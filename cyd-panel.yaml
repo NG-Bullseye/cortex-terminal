@@ -351,7 +351,7 @@ interval:
                   id(status_led).turn_off().perform();
                 }
 
-  # Poll Cortex musik state -> btn_musik visual (gruen=active, blau=idle, rot=error)
+  # Poll Cortex musik state -> btn_musik visual (3-state: gruen=active, blau=idle, rot=error)
   - interval: 5s
     then:
       - http_request.get:
@@ -360,8 +360,15 @@ interval:
           max_response_buffer_size: 256
           on_response:
             - lambda: |-
+                // ERROR-Bedingung 1: HTTP-Fehler oder leerer Body (cortex down)
                 if (response->status_code != 200 || body.empty()) {
-                  // Backend down: ROT, kein State holbar
+                  lv_obj_clear_flag(id(btn_musik), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0xff0000), 0);
+                  return;
+                }
+                // ERROR-Bedingung 2: response_field fehlt im JSON (state=null/bug)
+                if (body.find("\"musik\":") == std::string::npos) {
                   lv_obj_clear_flag(id(btn_musik), LV_OBJ_FLAG_CLICKABLE);
                   lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x1a0808), 0);
                   lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0xff0000), 0);
@@ -370,13 +377,11 @@ interval:
                 bool active = body.find("\"musik\":true") != std::string::npos;
                 id(musik_active) = active;
                 if (active) {
-                  // active = GRUEN
                   lv_obj_add_state(id(btn_musik), LV_STATE_CHECKED);
                   lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x0d2a14), 0);
                   lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0x00ff88), 0);
                   lv_label_set_text(id(lbl_musik), "PLAYING");
                 } else {
-                  // idle = default-blau
                   lv_obj_clear_state(id(btn_musik), LV_STATE_CHECKED);
                   lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x0d1b2a), 0);
                   lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0x1b4965), 0);
@@ -384,7 +389,7 @@ interval:
                 }
                 lv_obj_add_flag(id(btn_musik), LV_OBJ_FLAG_CLICKABLE);
 
-  # Poll Cortex gaming state -> btn_gaming visual (gruen=active, blau=idle, rot=error)
+  # Poll Cortex gaming state -> btn_gaming visual (3-state: gruen=active, blau=idle, rot=error)
   - interval: 5s
     then:
       - http_request.get:
@@ -394,7 +399,12 @@ interval:
           on_response:
             - lambda: |-
                 if (response->status_code != 200 || body.empty()) {
-                  // Backend down: ROT, kein State holbar
+                  lv_obj_clear_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
+                  return;
+                }
+                if (body.find("\"gaming\":") == std::string::npos) {
                   lv_obj_clear_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
                   lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
                   lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
@@ -403,13 +413,11 @@ interval:
                 bool active = body.find("\"gaming\":true") != std::string::npos;
                 id(gaming_active) = active;
                 if (active) {
-                  // active = GRUEN
                   lv_obj_add_state(id(btn_gaming), LV_STATE_CHECKED);
                   lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x0d2a14), 0);
                   lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0x00ff88), 0);
                   lv_label_set_text(id(lbl_gaming), "GAMING");
                 } else {
-                  // idle = default-blau
                   lv_obj_clear_state(id(btn_gaming), LV_STATE_CHECKED);
                   lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x0d1b2a), 0);
                   lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0x1b4965), 0);
@@ -725,6 +733,16 @@ lvgl:
                         url: "http://192.168.1.225:8900/api/licht/helles-licht"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
+                        capture_response: true
+                        on_response:
+                          - lambda: |-
+                              if (response->status_code >= 400) {
+                                lv_obj_set_style_bg_color(id(btn_licht), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_licht), lv_color_hex(0xff0000), 0);
+                              } else {
+                                lv_obj_set_style_bg_color(id(btn_licht), lv_color_hex(0x0d1b2a), 0);
+                                lv_obj_set_style_border_color(id(btn_licht), lv_color_hex(0x1b4965), 0);
+                              }
 
               # Slot 2: SYNC — Cortex reconciliation
               - button:
@@ -822,6 +840,13 @@ lvgl:
                         url: "http://192.168.1.225:8900/api/gaming/toggle"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
+                        capture_response: true
+                        on_response:
+                          - lambda: |-
+                              if (response->status_code >= 400) {
+                                lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
+                              }
 
               # Slot 7: MUSIK — POST /api/musik/toggle (toggle), GET /api/musik (state)
               # Visual via 5s-interval-poll (gruen=active, blau=idle, rot=error)
@@ -843,6 +868,13 @@ lvgl:
                         url: "http://192.168.1.225:8900/api/musik/toggle"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
+                        capture_response: true
+                        on_response:
+                          - lambda: |-
+                              if (response->status_code >= 400) {
+                                lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0xff0000), 0);
+                              }
 
               # Slot 8-9: Platzhalter (TBD von Leo). Non-clickable, keine on_release.
               - button:

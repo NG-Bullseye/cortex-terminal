@@ -1,4 +1,4 @@
-  # Poll Cortex ${id} state -> ${btn_id} visual (gruen=active, blau=idle, rot=error)
+  # Poll Cortex ${id} state -> ${btn_id} visual (3-state: gruen=active, blau=idle, rot=error)
   - interval: ${poll_interval_s}s
     then:
       - http_request.get:
@@ -7,23 +7,31 @@
           max_response_buffer_size: 256
           on_response:
             - lambda: |-
+                // ERROR-Bedingung 1: HTTP-Fehler oder leerer Body (cortex down)
                 if (response->status_code != 200 || body.empty()) {
-                  // Backend down: ROT, kein State holbar
                   lv_obj_clear_flag(id(${btn_id}), LV_OBJ_FLAG_CLICKABLE);
                   lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x1a0808), 0);
                   lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0xff0000), 0);
                   return;
                 }
+                // ERROR-Bedingung 2: response_field fehlt im JSON (state=null/bug)
+                if (body.find("\"${response_field}\":") == std::string::npos) {
+                  lv_obj_clear_flag(id(${btn_id}), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0xff0000), 0);
+                  return;
+                }
+                // ACTIVE vs IDLE
                 bool active = body.find("${match_substring}") != std::string::npos;
                 id(${global_id}) = active;
                 if (active) {
-                  // active = GRUEN
+                  // GRUEN
                   lv_obj_add_state(id(${btn_id}), LV_STATE_CHECKED);
                   lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x0d2a14), 0);
                   lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0x00ff88), 0);
                   lv_label_set_text(id(${lbl_id}), "${active_label}");
                 } else {
-                  // idle = default-blau
+                  // default BLAU (style_btn)
                   lv_obj_clear_state(id(${btn_id}), LV_STATE_CHECKED);
                   lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x0d1b2a), 0);
                   lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0x1b4965), 0);

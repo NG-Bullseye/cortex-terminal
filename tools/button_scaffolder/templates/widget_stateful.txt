@@ -18,3 +18,12 @@
                         url: "${action_url}"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
+                        capture_response: true
+                        on_response:
+                          - lambda: |-
+                              // POST-Fehler-Feedback: Button ROT bei 4xx/5xx, naechster
+                              // GET-Poll (max ${poll_interval_s}s) repaintet bei Recovery.
+                              if (response->status_code >= 400) {
+                                lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0xff0000), 0);
+                              }

@@ -17,3 +17,15 @@
                         url: "${action_url}"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
+                        capture_response: true
+                        on_response:
+                          - lambda: |-
+                              // 2-state stateless: ROT bei Fehler, sonst default-blau.
+                              // Persistiert bis zum naechsten Tap (kein Auto-Reset-Poll).
+                              if (response->status_code >= 400) {
+                                lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0xff0000), 0);
+                              } else {
+                                lv_obj_set_style_bg_color(id(${btn_id}), lv_color_hex(0x0d1b2a), 0);
+                                lv_obj_set_style_border_color(id(${btn_id}), lv_color_hex(0x1b4965), 0);
+                              }
