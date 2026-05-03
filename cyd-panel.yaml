@@ -194,13 +194,13 @@ globals:
     type: bool
     initial_value: 'false'
     restore_value: false
-  # Cortex musik state (mirrors GET /api/musik poll, drives btn_musik visual)
-  - id: musik_active
+  # Cortex play_gaming state (combined musik+gaming, drives btn_play_gaming visual)
+  - id: play_gaming_active
     type: bool
     initial_value: 'false'
     restore_value: false
-  # Cortex gaming state (mirrors GET /api/gaming poll, drives btn_gaming visual)
-  - id: gaming_active
+  # Cortex night_blackout state (Schlaf-Schutz, drives btn_night visual)
+  - id: night_active
     type: bool
     initial_value: 'false'
     restore_value: false
@@ -351,79 +351,77 @@ interval:
                   id(status_led).turn_off().perform();
                 }
 
-  # Poll Cortex musik state -> btn_musik visual (3-state: gruen=active, blau=idle, rot=error)
+  # Poll Cortex play_gaming state -> btn_play_gaming visual (3-state: gruen=both-on, blau=idle, rot=error)
   - interval: 5s
     then:
       - http_request.get:
-          url: "http://192.168.1.225:8900/api/musik"
+          url: "http://192.168.1.225:8900/api/play_gaming"
           capture_response: true
           max_response_buffer_size: 256
           on_response:
             - lambda: |-
-                // ERROR-Bedingung 1: HTTP-Fehler oder leerer Body (cortex down)
                 if (response->status_code != 200 || body.empty()) {
-                  lv_obj_clear_flag(id(btn_musik), LV_OBJ_FLAG_CLICKABLE);
-                  lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x1a0808), 0);
-                  lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0xff0000), 0);
+                  lv_obj_clear_flag(id(btn_play_gaming), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0xff0000), 0);
                   return;
                 }
-                // ERROR-Bedingung 2: response_field fehlt im JSON (state=null/bug)
-                if (body.find("\"musik\":") == std::string::npos) {
-                  lv_obj_clear_flag(id(btn_musik), LV_OBJ_FLAG_CLICKABLE);
-                  lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x1a0808), 0);
-                  lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0xff0000), 0);
+                if (body.find("\"play_gaming\":") == std::string::npos) {
+                  lv_obj_clear_flag(id(btn_play_gaming), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0xff0000), 0);
                   return;
                 }
-                bool active = body.find("\"musik\":true") != std::string::npos;
-                id(musik_active) = active;
+                bool active = body.find("\"play_gaming\":true") != std::string::npos;
+                id(play_gaming_active) = active;
                 if (active) {
-                  lv_obj_add_state(id(btn_musik), LV_STATE_CHECKED);
-                  lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x0d2a14), 0);
-                  lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0x00ff88), 0);
-                  lv_label_set_text(id(lbl_musik), "PLAYING");
+                  lv_obj_add_state(id(btn_play_gaming), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x0d2a14), 0);
+                  lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0x00ff88), 0);
+                  lv_label_set_text(id(lbl_play_gaming), "ACTIVE");
                 } else {
-                  lv_obj_clear_state(id(btn_musik), LV_STATE_CHECKED);
-                  lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x0d1b2a), 0);
-                  lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0x1b4965), 0);
-                  lv_label_set_text(id(lbl_musik), "PAUSED");
+                  lv_obj_clear_state(id(btn_play_gaming), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x0d1b2a), 0);
+                  lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0x1b4965), 0);
+                  lv_label_set_text(id(lbl_play_gaming), "IDLE");
                 }
-                lv_obj_add_flag(id(btn_musik), LV_OBJ_FLAG_CLICKABLE);
+                lv_obj_add_flag(id(btn_play_gaming), LV_OBJ_FLAG_CLICKABLE);
 
-  # Poll Cortex gaming state -> btn_gaming visual (3-state: gruen=active, blau=idle, rot=error)
+  # Poll Cortex night_blackout state -> btn_night visual (3-state: gruen=schlaf-aktiv, blau=tag, rot=error)
   - interval: 5s
     then:
       - http_request.get:
-          url: "http://192.168.1.225:8900/api/gaming"
+          url: "http://192.168.1.225:8900/api/night_blackout"
           capture_response: true
           max_response_buffer_size: 256
           on_response:
             - lambda: |-
                 if (response->status_code != 200 || body.empty()) {
-                  lv_obj_clear_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
-                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
-                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
+                  lv_obj_clear_flag(id(btn_night), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_night), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_night), lv_color_hex(0xff0000), 0);
                   return;
                 }
-                if (body.find("\"gaming\":") == std::string::npos) {
-                  lv_obj_clear_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
-                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
-                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
+                if (body.find("\"night_blackout\":") == std::string::npos) {
+                  lv_obj_clear_flag(id(btn_night), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_night), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_night), lv_color_hex(0xff0000), 0);
                   return;
                 }
-                bool active = body.find("\"gaming\":true") != std::string::npos;
-                id(gaming_active) = active;
+                bool active = body.find("\"night_blackout\":true") != std::string::npos;
+                id(night_active) = active;
                 if (active) {
-                  lv_obj_add_state(id(btn_gaming), LV_STATE_CHECKED);
-                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x0d2a14), 0);
-                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0x00ff88), 0);
-                  lv_label_set_text(id(lbl_gaming), "GAMING");
+                  lv_obj_add_state(id(btn_night), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_night), lv_color_hex(0x0d2a14), 0);
+                  lv_obj_set_style_border_color(id(btn_night), lv_color_hex(0x00ff88), 0);
+                  lv_label_set_text(id(lbl_night), "SLEEP");
                 } else {
-                  lv_obj_clear_state(id(btn_gaming), LV_STATE_CHECKED);
-                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x0d1b2a), 0);
-                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0x1b4965), 0);
-                  lv_label_set_text(id(lbl_gaming), "GAMING OFF");
+                  lv_obj_clear_state(id(btn_night), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_night), lv_color_hex(0x0d1b2a), 0);
+                  lv_obj_set_style_border_color(id(btn_night), lv_color_hex(0x1b4965), 0);
+                  lv_label_set_text(id(lbl_night), "AWAKE");
                 }
-                lv_obj_add_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
+                lv_obj_add_flag(id(btn_night), LV_OBJ_FLAG_CLICKABLE);
 
   # Dispatch pending fix requests (from button taps)
   - interval: 1s
@@ -820,78 +818,121 @@ lvgl:
                         service: script.turn_on
                         data: { entity_id: script.nabu_think }
 
-              # Slot 6: GAMING — POST /api/gaming/toggle (toggle), GET /api/gaming (state)
-              # Visual via 5s-interval-poll (gruen=active, blau=idle, rot=error)
+              # Slot 6: PLAY+GAME (combined) — togglet musik + gaming gleichzeitig
+              # POST /api/play_gaming/toggle, GET /api/play_gaming (state.active = beide on)
               - button:
-                  id: btn_gaming
+                  id: btn_play_gaming
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
                   width: 99
                   height: 44
                   widgets:
                     - label:
-                        id: lbl_gaming
-                        text: "GAMING OFF"
+                        id: lbl_play_gaming
+                        text: "IDLE"
                         text_font: font_mono_12
                         align: CENTER
                   on_release:
-                    - logger.log: "SLOT6: GAMING -> POST /api/gaming/toggle"
+                    - logger.log: "SLOT6: PLAY+GAME -> POST /api/play_gaming/toggle"
                     - http_request.post:
-                        url: "http://192.168.1.225:8900/api/gaming/toggle"
+                        url: "http://192.168.1.225:8900/api/play_gaming/toggle"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
                         capture_response: true
                         on_response:
                           - lambda: |-
                               if (response->status_code >= 400) {
-                                lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
-                                lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
+                                lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0xff0000), 0);
                               }
 
-              # Slot 7: MUSIK — POST /api/musik/toggle (toggle), GET /api/musik (state)
-              # Visual via 5s-interval-poll (gruen=active, blau=idle, rot=error)
+              # Slot 7: NIGHT — POST /api/night_blackout/toggle, GET /api/night_blackout
+              # Visual via 5s-interval-poll (gruen=schlaf-aktiv, blau=tag, rot=error)
               - button:
-                  id: btn_musik
+                  id: btn_night
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
                   width: 99
                   height: 44
                   widgets:
                     - label:
-                        id: lbl_musik
-                        text: "PAUSED"
+                        id: lbl_night
+                        text: "AWAKE"
                         text_font: font_mono_12
                         align: CENTER
                   on_release:
-                    - logger.log: "SLOT7: MUSIK -> POST /api/musik/toggle"
+                    - logger.log: "SLOT7: NIGHT -> POST /api/night_blackout/toggle"
                     - http_request.post:
-                        url: "http://192.168.1.225:8900/api/musik/toggle"
+                        url: "http://192.168.1.225:8900/api/night_blackout/toggle"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
                         capture_response: true
                         on_response:
                           - lambda: |-
                               if (response->status_code >= 400) {
-                                lv_obj_set_style_bg_color(id(btn_musik), lv_color_hex(0x1a0808), 0);
-                                lv_obj_set_style_border_color(id(btn_musik), lv_color_hex(0xff0000), 0);
+                                lv_obj_set_style_bg_color(id(btn_night), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_night), lv_color_hex(0xff0000), 0);
                               }
 
-              # Slot 8-9: Platzhalter (TBD von Leo). Non-clickable, keine on_release.
+              # Slot 8: APPLY — POST /api/apply_current_slot (re-render Slot, debug)
               - button:
-                  id: btn_slot8
+                  id: btn_apply
                   styles: style_btn
+                  pressed: { styles: style_btn_pressed }
                   width: 99
                   height: 44
                   widgets:
-                    - label: { text: "—", text_font: font_mono_12, text_color: 0x1b4965, align: CENTER }
+                    - label:
+                        id: lbl_apply
+                        text: "APPLY"
+                        text_font: font_mono_12
+                        align: CENTER
+                  on_release:
+                    - logger.log: "SLOT8: APPLY -> POST /api/apply_current_slot"
+                    - http_request.post:
+                        url: "http://192.168.1.225:8900/api/apply_current_slot"
+                        request_headers: { Content-Type: "application/json" }
+                        body: "{}"
+                        capture_response: true
+                        on_response:
+                          - lambda: |-
+                              if (response->status_code >= 400) {
+                                lv_obj_set_style_bg_color(id(btn_apply), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_apply), lv_color_hex(0xff0000), 0);
+                              } else {
+                                lv_obj_set_style_bg_color(id(btn_apply), lv_color_hex(0x0d1b2a), 0);
+                                lv_obj_set_style_border_color(id(btn_apply), lv_color_hex(0x1b4965), 0);
+                              }
 
+              # Slot 9: HOME — POST /api/user_home/force (presence force, debug)
               - button:
-                  id: btn_slot9
+                  id: btn_home
                   styles: style_btn
+                  pressed: { styles: style_btn_pressed }
                   width: 99
                   height: 44
                   widgets:
-                    - label: { text: "—", text_font: font_mono_12, text_color: 0x1b4965, align: CENTER }
+                    - label:
+                        id: lbl_home
+                        text: "HOME"
+                        text_font: font_mono_12
+                        align: CENTER
+                  on_release:
+                    - logger.log: "SLOT9: HOME -> POST /api/user_home/force"
+                    - http_request.post:
+                        url: "http://192.168.1.225:8900/api/user_home/force"
+                        request_headers: { Content-Type: "application/json" }
+                        body: "{}"
+                        capture_response: true
+                        on_response:
+                          - lambda: |-
+                              if (response->status_code >= 400) {
+                                lv_obj_set_style_bg_color(id(btn_home), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_home), lv_color_hex(0xff0000), 0);
+                              } else {
+                                lv_obj_set_style_bg_color(id(btn_home), lv_color_hex(0x0d1b2a), 0);
+                                lv_obj_set_style_border_color(id(btn_home), lv_color_hex(0x1b4965), 0);
+                              }
 
         # ── Cortex Statuskanal (bottom) — pro Page repliziert ──
         - obj:

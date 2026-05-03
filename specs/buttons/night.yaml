@@ -1,0 +1,15 @@
+# NIGHT BLACKOUT toggle — Schlaf-Schutz (LayerKey.NIGHT_BLACKOUT prio 110).
+# Stateful: gruen=Schlaf-Schutz aktiv, blau=tag, rot=cortex-down.
+
+id: night
+label: "NIGHT"
+page: CTRL
+slot: 7
+endpoint: /api/night_blackout/toggle
+state:
+  endpoint: /api/night_blackout
+  poll_interval_s: 5
+  response_field: night_blackout
+  active_value: true
+  active_label: "SLEEP"
+  idle_label:   "AWAKE"

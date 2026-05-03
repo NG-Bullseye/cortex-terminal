@@ -1,0 +1,8 @@
+# APPLY — Re-rendert aktuellen Slot (Reconciliation).
+# Stateless. Useful wenn Lichter/Musik aus dem Sync gelaufen sind.
+
+id: apply
+label: "APPLY"
+page: CTRL
+slot: 8
+endpoint: /api/apply_current_slot

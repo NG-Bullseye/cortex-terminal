@@ -1,0 +1,8 @@
+# HOME — Forciert _set_home (bypass mmWave-Wait).
+# Stateless. Test/Debug fuer Presence-Detection.
+
+id: home
+label: "HOME"
+page: CTRL
+slot: 9
+endpoint: /api/user_home/force
