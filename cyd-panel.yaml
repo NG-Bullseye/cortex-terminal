@@ -199,6 +199,11 @@ globals:
     type: bool
     initial_value: 'false'
     restore_value: false
+  # Cortex gaming state (mirrors GET /api/gaming poll, drives btn_gaming visual)
+  - id: gaming_active
+    type: bool
+    initial_value: 'false'
+    restore_value: false
 
 # ── Sensors ────────────────────────────────────────────
 sensor:
@@ -378,6 +383,39 @@ interval:
                   lv_label_set_text(id(lbl_musik), "PAUSED");
                 }
                 lv_obj_add_flag(id(btn_musik), LV_OBJ_FLAG_CLICKABLE);
+
+  # Poll Cortex gaming state -> btn_gaming visual (gruen=active, blau=idle, rot=error)
+  - interval: 5s
+    then:
+      - http_request.get:
+          url: "http://192.168.1.225:8900/api/gaming"
+          capture_response: true
+          max_response_buffer_size: 256
+          on_response:
+            - lambda: |-
+                if (response->status_code != 200 || body.empty()) {
+                  // Backend down: ROT, kein State holbar
+                  lv_obj_clear_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
+                  return;
+                }
+                bool active = body.find("\"gaming\":true") != std::string::npos;
+                id(gaming_active) = active;
+                if (active) {
+                  // active = GRUEN
+                  lv_obj_add_state(id(btn_gaming), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x0d2a14), 0);
+                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0x00ff88), 0);
+                  lv_label_set_text(id(lbl_gaming), "GAMING");
+                } else {
+                  // idle = default-blau
+                  lv_obj_clear_state(id(btn_gaming), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x0d1b2a), 0);
+                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0x1b4965), 0);
+                  lv_label_set_text(id(lbl_gaming), "GAMING OFF");
+                }
+                lv_obj_add_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
 
   # Dispatch pending fix requests (from button taps)
   - interval: 1s
@@ -668,23 +706,25 @@ lvgl:
               pad_column: 6
               pad_row: 6
             widgets:
-              # Slot 1: LICHT — script.helles_licht_override (Cortex /api/licht/helles-licht via HA)
+              # Slot 1: LICHT — POST /api/licht/helles-licht (cortex direkt, kein HA-Detour)
               - button:
-                  id: btn_slot1
+                  id: btn_licht
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
                   width: 99
                   height: 44
                   widgets:
-                    - label: { text: "LICHT", text_font: font_mono_12, align: CENTER }
+                    - label:
+                        id: lbl_licht
+                        text: "LICHT"
+                        text_font: font_mono_12
+                        align: CENTER
                   on_release:
-                    - logger.log: "SLOT1: LICHT"
+                    - logger.log: "SLOT1: LICHT -> POST /api/licht/helles-licht"
                     - http_request.post:
-                        url: "http://192.168.1.225:8123/api/services/script/turn_on"
-                        request_headers:
-                          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyYmJhNmExYjVhZGM0OWRiYjgyNjdiMGE3NzAxYTM0MSIsImlhdCI6MTc1ODM4MDI3NywiZXhwIjoyMDczNzQwMjc3fQ.DotVSr2qMp6PZQJA5nvjNtMSwT49hk921KzyrM2AfmU"
-                          Content-Type: "application/json"
-                        body: '{"entity_id":"script.helles_licht_override"}'
+                        url: "http://192.168.1.225:8900/api/licht/helles-licht"
+                        request_headers: { Content-Type: "application/json" }
+                        body: "{}"
 
               # Slot 2: SYNC — Cortex reconciliation
               - button:
@@ -762,20 +802,26 @@ lvgl:
                         service: script.turn_on
                         data: { entity_id: script.nabu_think }
 
-              # Slot 6: GAMING — Cortex Gaming-Mode an (aus via Voice / separates Skript)
+              # Slot 6: GAMING — POST /api/gaming/toggle (toggle), GET /api/gaming (state)
+              # Visual via 5s-interval-poll (gruen=active, blau=idle, rot=error)
               - button:
-                  id: btn_slot6
+                  id: btn_gaming
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
                   width: 99
                   height: 44
                   widgets:
-                    - label: { text: "GAMING ON", text_font: font_mono_12, text_color: 0xff6b35, align: CENTER }
+                    - label:
+                        id: lbl_gaming
+                        text: "GAMING OFF"
+                        text_font: font_mono_12
+                        align: CENTER
                   on_release:
-                    - logger.log: "SLOT6: GAMING ON"
-                    - homeassistant.service:
-                        service: script.turn_on
-                        data: { entity_id: script.cortex_gaming_on }
+                    - logger.log: "SLOT6: GAMING -> POST /api/gaming/toggle"
+                    - http_request.post:
+                        url: "http://192.168.1.225:8900/api/gaming/toggle"
+                        request_headers: { Content-Type: "application/json" }
+                        body: "{}"
 
               # Slot 7: MUSIK — POST /api/musik/toggle (toggle), GET /api/musik (state)
               # Visual via 5s-interval-poll (gruen=active, blau=idle, rot=error)
