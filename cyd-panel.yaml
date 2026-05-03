@@ -68,11 +68,9 @@ output:
     inverted: true
 
 light:
-  - id: backlight
-    platform: monochromatic
-    output: backlight_pwm
-    name: "Display Backlight"
-    restore_mode: ALWAYS_ON
+  # Status-LED bleibt light (RGB — braucht color-control). Backlight ist
+  # zu switch konvertiert (siehe unten) damit cortex nicht "alle lichter aus"
+  # auch das display-backlight ausschaltet.
   - id: status_led
     platform: rgb
     red: led_red
@@ -80,6 +78,27 @@ light:
     blue: led_blue
     name: "Status LED"
     restore_mode: ALWAYS_OFF
+
+# ── Backlight als SWITCH statt LIGHT ──────────────────────────────────
+# Reason: cortex/HA interpretiert "light.*" entities als steuerbare Wohnraum-
+# beleuchtung. Display-backlight des CYD-Panels ist aber kein Wohnraum-licht
+# und sollte nicht von "alle lichter aus" mitgemacht werden. Als switch ist
+# das toggle (on/off) trotzdem moeglich, aber HA klassifiziert nicht als
+# light → routinen ignorieren das. Dim-level ist auf 80% fixed.
+switch:
+  - platform: template
+    id: backlight
+    name: "Display Backlight"
+    optimistic: true
+    restore_mode: ALWAYS_ON
+    turn_on_action:
+      - output.set_level:
+          id: backlight_pwm
+          level: 80%
+    turn_off_action:
+      - output.set_level:
+          id: backlight_pwm
+          level: 0%
 
 # ── Display ────────────────────────────────────────────
 display:
