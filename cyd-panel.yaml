@@ -204,8 +204,8 @@ globals:
     type: bool
     initial_value: 'false'
     restore_value: false
-  # Cortex gaming state (drives btn_gaming visual via /api/gaming poll)
-  - id: gaming_active
+  # Cortex lights-only state (drives btn_lights_only visual via /api/lights_only poll)
+  - id: lights_only_active
     type: bool
     initial_value: 'false'
     restore_value: false
@@ -448,39 +448,39 @@ interval:
                 }
                 lv_obj_add_flag(id(btn_night), LV_OBJ_FLAG_CLICKABLE);
 
-  # Poll Cortex gaming state -> btn_gaming visual (gruen=ON, blau=OFF, rot=error)
+  # Poll Cortex lights-only state -> btn_lights_only visual (gruen=ON, blau=OFF, rot=error)
   - interval: 5s
     then:
       - http_request.get:
-          url: "http://192.168.1.225:8900/api/gaming"
+          url: "http://192.168.1.225:8900/api/lights_only"
           capture_response: true
           max_response_buffer_size: 256
           on_response:
             - lambda: |-
                 if (response->status_code != 200 || body.empty()) {
-                  lv_obj_clear_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
-                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
-                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
+                  lv_obj_clear_flag(id(btn_lights_only), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_lights_only), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_lights_only), lv_color_hex(0xff0000), 0);
                   return;
                 }
-                if (body.find("\"gaming\":") == std::string::npos) {
-                  lv_obj_clear_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
-                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
-                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
+                if (body.find("\"lights_only\":") == std::string::npos) {
+                  lv_obj_clear_flag(id(btn_lights_only), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_lights_only), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_lights_only), lv_color_hex(0xff0000), 0);
                   return;
                 }
-                bool active = body.find("\"gaming\":true") != std::string::npos;
-                id(gaming_active) = active;
+                bool active = body.find("\"lights_only\":true") != std::string::npos;
+                id(lights_only_active) = active;
                 if (active) {
-                  lv_obj_add_state(id(btn_gaming), LV_STATE_CHECKED);
-                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x2a1a00), 0);
-                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff8800), 0);
+                  lv_obj_add_state(id(btn_lights_only), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_lights_only), lv_color_hex(0x0d2a14), 0);
+                  lv_obj_set_style_border_color(id(btn_lights_only), lv_color_hex(0x00ff44), 0);
                 } else {
-                  lv_obj_clear_state(id(btn_gaming), LV_STATE_CHECKED);
-                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x0d1b2a), 0);
-                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0x1b4965), 0);
+                  lv_obj_clear_state(id(btn_lights_only), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_lights_only), lv_color_hex(0x0d1b2a), 0);
+                  lv_obj_set_style_border_color(id(btn_lights_only), lv_color_hex(0x1b4965), 0);
                 }
-                lv_obj_add_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
+                lv_obj_add_flag(id(btn_lights_only), LV_OBJ_FLAG_CLICKABLE);
 
   # Dispatch pending fix requests (from button taps)
   - interval: 1s
@@ -933,32 +933,33 @@ lvgl:
                                 lv_obj_set_style_border_color(id(btn_night), lv_color_hex(0xff0000), 0);
                               }
 
-              # Slot 8: GAMING — toggle Cortex Gaming-Mode (state-driven, amber wenn ON)
-              # POST /api/gaming/toggle, GET /api/gaming (5s-poll oben aktualisiert Visual)
+              # Slot 8: LICHT-ONLY — toggle Lights-only-Policy (state-driven, gruen wenn ON)
+              # POST /api/lights_only/toggle, GET /api/lights_only (5s-poll oben aktualisiert Visual)
+              # (ersetzte GAMING-Button — Gaming-Logik in cortex bleibt, nur Button getauscht)
               - button:
-                  id: btn_gaming
+                  id: btn_lights_only
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
                   width: 99
                   height: 44
                   widgets:
                     - label:
-                        id: lbl_gaming
-                        text: "GAMING"
+                        id: lbl_lights_only
+                        text: "LICHT-ONLY"
                         text_font: font_mono_12
                         align: CENTER
                   on_release:
-                    - logger.log: "SLOT8: GAMING -> POST /api/gaming/toggle"
+                    - logger.log: "SLOT8: LICHT-ONLY -> POST /api/lights_only/toggle"
                     - http_request.post:
-                        url: "http://192.168.1.225:8900/api/gaming/toggle"
+                        url: "http://192.168.1.225:8900/api/lights_only/toggle"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
                         capture_response: true
                         on_response:
                           - lambda: |-
                               if (response->status_code >= 400) {
-                                lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
-                                lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
+                                lv_obj_set_style_bg_color(id(btn_lights_only), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_lights_only), lv_color_hex(0xff0000), 0);
                               }
 
               # Slot 9: PRED-M — toggle Watchdog Predictive Maintenance (WD-45).
