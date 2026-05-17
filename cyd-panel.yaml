@@ -1,6 +1,6 @@
 esphome:
   name: cyd-panel
-  friendly_name: "Nabu Terminal"
+  friendly_name: "Cortex Terminal"
 
 esp32:
   board: esp32dev
@@ -227,7 +227,7 @@ sensor:
 
 # ── Text Sensors (HA → Display) ───────────────────────
 
-# Nabu Kommunikationskanal: HA/MCP setzt diesen Text
+# Cortex Kommunikationskanal: HA/MCP setzt diesen Text
 text_sensor:
   - platform: template
     name: "Nabu Message"
@@ -862,7 +862,7 @@ lvgl:
                         service: script.turn_on
                         data: { entity_id: script.cortex_firetv }
 
-              # Slot 5: THINK — Nabu-Think-Skript (Cortex-Inferenz)
+              # Slot 5: THINK — Cortex-Think-Skript (Cortex-Inferenz)
               - button:
                   id: btn_slot5
                   styles: style_btn
@@ -1264,7 +1264,7 @@ lvgl:
                     - lvgl.page.show: page_dev
 
     # ═══════════════════════════════════════════════════
-    # PAGE 2: FEED - Watchdog + Nabu Comms
+    # PAGE 2: FEED - Watchdog + Cortex Comms
     # ═══════════════════════════════════════════════════
     - id: page_feed
       bg_color: 0x0a0a1a

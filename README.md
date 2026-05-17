@@ -2,7 +2,7 @@
 
 **Was:** ESP32-basiertes CYD (Cheap Yellow Display, 240×320 TFT mit Touch). Hardware-Frontend fuer das Cortex-Smarthome-System. Zeigt Status, hat Touch-Buttons fuer Smart-Home-Aktionen, sendet HTTP-Requests an Cortex/HA.
 
-**Wofuer:** „Nabu Terminal" am PC-Tisch — Touch-Buttons triggern HA-Scripts (`script.turn_on`), Cortex-Aktionen (`/api/feed`, `/api/sync_to_vibe`, `/api/blackout`), und zeigt Feed/Status-Updates.
+**Wofuer:** „Cortex Terminal" am PC-Tisch — Touch-Buttons triggern HA-Scripts (`script.turn_on`), Cortex-Aktionen (`/api/feed`, `/api/sync_to_vibe`, `/api/blackout`), und zeigt Feed/Status-Updates.
 
 ---
 
