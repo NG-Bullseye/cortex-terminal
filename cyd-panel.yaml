@@ -741,7 +741,7 @@ lvgl:
                   align: LEFT_MID
                   x: 4
               - label:
-                  text: "NABU"
+                  text: "CORTEX"
                   text_font: font_header
                   text_color: 0xe94560
                   align: CENTER
