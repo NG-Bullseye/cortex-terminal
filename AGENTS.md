@@ -1,7 +1,7 @@
 # cortex-terminal — Agent Brief
 
 ## Was ist das
-ESP32 + CYD-Display (Cheap Yellow Display, 240×320 Touch) als Hardware-Frontend fuer Cortex. „Nabu Terminal" am PC-Tisch. Touch-Buttons triggern HA-Scripts und Cortex-HTTP-Endpoints, Display zeigt Status/Feed.
+ESP32 + CYD-Display (Cheap Yellow Display, 240×320 Touch) als Hardware-Frontend fuer Cortex. „Cortex Terminal" am PC-Tisch. Touch-Buttons triggern HA-Scripts und Cortex-HTTP-Endpoints, Display zeigt Status/Feed.
 
 ```
 [CYD Touch] ─on_release─▶ [HA-Service / HTTP] ─▶ Cortex / HA / chat-service
@@ -26,7 +26,7 @@ ESP32 + CYD-Display (Cheap Yellow Display, 240×320 Touch) als Hardware-Frontend
 
 ## Pages (LVGL — Stand Live-Firmware 2026-04-27)
 - **CTRL** — Slot1 LICHT / Slot2 SYNC / Slot3 BLACKOUT / Slot4 FIRE TV / Slot5 THINK
-- **FEED** — Watchdog + Nabu-Comms
+- **FEED** — Watchdog + Cortex-Comms
 - **AUDIO** — Beamer-Volume-Buttons (`script.tv_volume_*`)
 - **DEV** — Touch-Calibration · `btn_gaming` (Repo, nicht geflashed bis Leo will)
 - Nav-Bar unten: CTRL / FEED / AUDIO / DEV
@@ -44,7 +44,7 @@ ping -c 1 192.168.1.240                              # verify back online
 **Wichtig — Gotchas:**
 - **mDNS funktioniert hier NICHT.** `--device cortex-terminal.local` / `cyd-panel.local` schlaegt mit „Error resolving IP" fehl. Immer die statische IP `192.168.1.240` nutzen (aus `cyd-panel.yaml` → `wifi.manual_ip.static_ip`).
 - **Compile + Upload getrennt halten** statt `esphome run`. Compile ist teuer (~150s), Upload billig (~6s). Bei iterativem Testing: einmal kompilieren, mehrfach uploaden.
-- **HA wirft OTA-Warnings**: `Nabu Terminal: esphome.ota set Warning flag: unspecified` waehrend Flash, `cleared Warning flag` danach. Normal, ignorieren.
+- **HA wirft OTA-Warnings**: `Cortex Terminal: esphome.ota set Warning flag: unspecified` waehrend Flash, `cleared Warning flag` danach. Normal, ignorieren.
 - **Statische IP-Quelle:** `grep -E "static_ip|use_address" cyd-panel.yaml` falls die IP mal wechselt.
 - **Pre-Flash-Reachability-Check:** `ping -c 2 -W 2 192.168.1.240` — wenn der nicht antwortet, Flash NICHT versuchen (Geraet offline / im Boot-Loop). Erst Hardware checken.
 
