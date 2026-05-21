@@ -54,17 +54,26 @@ Fix-Dispatch: 1s-Intervall POST nach `http://192.168.1.225:8900/api/feed/fix` (Z
 
 ## Buttons nach Seite
 
-### CTRL (page_main, ~549-730)
-| ID | Label | Typ | Aktion | State-Entity |
-|----|-------|-----|--------|--------------|
-| btn_slot1 | LICHT | Push | `script.helles_licht_override` (via http_request.post!) | - |
-| btn_slot2 | NABU | Push | `rest_command.nabu_apply_current_slot` | - |
-| btn_slot3 | BLACKOUT | State | `input_boolean.toggle` | `input_boolean.nabu_blackout` |
-| btn_slot4 | REBOUND | State | `input_boolean.toggle` | `input_boolean.nabu_rebound` |
-| btn_slot5 | THINK | Push | `script.nabu_think` | - |
+### CTRL (page_main)
+**Grid 4×3 = 12 Slots, einheitlich 72×44** (vorher 3×3 @ 99×44 — Spalten 3→4, Leo 2026-05-21). Container 310×144, FLEX ROW_WRAP, pad 6.
 
-State-Farben: BLACKOUT ON=amber(`0x2a1a00/0xff8800`), REBOUND ON=gruen(`0x0a2a0a/0x00ff44`).
-Listener: BLACKOUT ~229-259, REBOUND ~261-279. REBOUND hat kein unavailable-handling (TODO).
+| Slot | ID | Label | Typ | Aktion / Endpoint | State-Entity |
+|----|----|-------|-----|--------|--------------|
+| 1 | btn_licht | LICHT | Push | POST `/api/licht/helles-licht` | - |
+| 2 | btn_slot2 | SYNC | Push | POST `/api/sync_to_vibe` | - |
+| 3 | btn_slot3 | BLACKOUT | State | POST `/api/blackout/{on,off}` (amber) | user_blackout (poll) |
+| 4 | btn_slot4 | FIRE TV | Push | `script.cortex_firetv` | - |
+| 5 | btn_slot5 | THINK | Push | `script.nabu_think` | - |
+| 6 | btn_slot6 | PLAY+GAME | State | musik+gaming toggle | - |
+| 7 | btn_night | NIGHT | State | POST `/api/night_blackout/toggle` | night_blackout (poll) |
+| 8 | btn_lights_only | LICHT-ONLY | State | POST `/api/lights_only/toggle` (gruen) | lights_only (poll) |
+| 9 | btn_pdm | PRED-M | State | `input_boolean.toggle` | `input_boolean.cortex_predictive_maintenance` (gruen) |
+| 10 | btn_guest | GUEST | State | `input_boolean.toggle` | `input_boolean.guest_mode` (amber) — WD-47, sperrt AWAY |
+| 11 | btn_slot11 | — | Platzhalter | (TBD) | - |
+| 12 | btn_slot12 | — | Platzhalter | (TBD) | - |
+
+State-Farben: BLACKOUT/GUEST ON=amber(`0x2a1a00/0xff8800`), LICHT-ONLY/PRED-M ON=gruen(`0x00ff44`).
+State-Listener (text_sensor): BLACKOUT ~247, GUEST `guest_state` (input_boolean.guest_mode), PRED-M `pdm_state`.
 
 ### FEED (page_feed, ~798-904)
 Dynamisch — siehe Feed Button oben.

@@ -310,6 +310,27 @@ text_sensor:
                   bg_color: 0x0a0a1a
                   border_color: 0x1a1a3a
 
+  - platform: homeassistant
+    name: "Slot10 GUEST state"
+    id: guest_state
+    entity_id: input_boolean.guest_mode
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return x == "on";'
+            then:
+              - lvgl.obj.update:
+                  id: btn_guest
+                  bg_color: 0x2a1a00
+                  border_color: 0xff8800
+            else:
+              - lvgl.obj.update:
+                  id: btn_guest
+                  bg_color: 0x0a0a1a
+                  border_color: 0x1a1a3a
+
+
 # ── Time ───────────────────────────────────────────────
 time:
   - platform: homeassistant
@@ -776,7 +797,7 @@ lvgl:
                   id: btn_licht
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
-                  width: 99
+                  width: 72
                   height: 44
                   widgets:
                     - label:
@@ -806,7 +827,7 @@ lvgl:
                   id: btn_slot2
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
-                  width: 99
+                  width: 72
                   height: 44
                   widgets:
                     - label: { text: "SYNC", text_font: font_mono_12, align: CENTER }
@@ -827,7 +848,7 @@ lvgl:
                   id: btn_slot3
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
-                  width: 99
+                  width: 72
                   height: 44
                   widgets:
                     - label: { text: "BLACKOUT", text_font: font_mono_12, align: CENTER }
@@ -852,7 +873,7 @@ lvgl:
                   id: btn_slot4
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
-                  width: 99
+                  width: 72
                   height: 44
                   widgets:
                     - label: { text: "FIRE TV", text_font: font_mono_12, align: CENTER }
@@ -867,7 +888,7 @@ lvgl:
                   id: btn_slot5
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
-                  width: 99
+                  width: 72
                   height: 44
                   widgets:
                     - label: { text: ">> THINK <<", text_font: font_mono_12, text_color: 0x00ccff, align: CENTER }
@@ -883,7 +904,7 @@ lvgl:
                   id: btn_play_gaming
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
-                  width: 99
+                  width: 72
                   height: 44
                   widgets:
                     - label:
@@ -911,7 +932,7 @@ lvgl:
                   id: btn_night
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
-                  width: 99
+                  width: 72
                   height: 44
                   widgets:
                     - label:
@@ -940,7 +961,7 @@ lvgl:
                   id: btn_lights_only
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
-                  width: 99
+                  width: 72
                   height: 44
                   widgets:
                     - label:
@@ -970,7 +991,7 @@ lvgl:
                   id: btn_pdm
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
-                  width: 99
+                  width: 72
                   height: 44
                   widgets:
                     - label:
@@ -983,6 +1004,47 @@ lvgl:
                     - homeassistant.action:
                         action: input_boolean.toggle
                         data: { entity_id: input_boolean.cortex_predictive_maintenance }
+
+              # Slot 10: GUEST — toggle input_boolean.guest_mode (WD-47, amber wenn ON)
+              # Sperrt AWAY-Trigger solange an (Schutz schlafender Gast, mmWave-Blindspot).
+              - button:
+                  id: btn_guest
+                  styles: style_btn
+                  pressed: { styles: style_btn_pressed }
+                  width: 72
+                  height: 44
+                  widgets:
+                    - label:
+                        id: lbl_guest
+                        text: "GUEST"
+                        text_font: font_mono_12
+                        align: CENTER
+                  on_release:
+                    - logger.log: "SLOT10: GUEST toggle input_boolean.guest_mode"
+                    - homeassistant.action:
+                        action: input_boolean.toggle
+                        data: { entity_id: input_boolean.guest_mode }
+
+              # Slot 11: Platzhalter (TBD)
+              - button:
+                  id: btn_slot11
+                  styles: style_btn
+                  pressed: { styles: style_btn_pressed }
+                  width: 72
+                  height: 44
+                  widgets:
+                    - label: { text: "—", text_font: font_mono_12, align: CENTER }
+
+              # Slot 12: Platzhalter (TBD)
+              - button:
+                  id: btn_slot12
+                  styles: style_btn
+                  pressed: { styles: style_btn_pressed }
+                  width: 72
+                  height: 44
+                  widgets:
+                    - label: { text: "—", text_font: font_mono_12, align: CENTER }
+
 
         # ── Cortex Statuskanal (bottom) — pro Page repliziert ──
         - obj:
