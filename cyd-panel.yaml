@@ -194,8 +194,8 @@ globals:
     type: bool
     initial_value: 'false'
     restore_value: false
-  # Cortex play_gaming state (combined musik+gaming, drives btn_play_gaming visual)
-  - id: play_gaming_active
+  # Cortex gaming state (drives btn_gaming visual)
+  - id: gaming_active
     type: bool
     initial_value: 'false'
     restore_value: false
@@ -399,39 +399,39 @@ interval:
                   id(status_led).turn_off().perform();
                 }
 
-  # Poll Cortex play_gaming state -> btn_play_gaming visual (3-state: gruen=both-on, blau=idle, rot=error)
+  # Poll Cortex gaming state -> btn_gaming visual (3-state: gruen=both-on, blau=idle, rot=error)
   - interval: 5s
     then:
       - http_request.get:
-          url: "http://192.168.1.225:8900/api/play_gaming"
+          url: "http://192.168.1.225:8900/api/gaming"
           capture_response: true
           max_response_buffer_size: 256
           on_response:
             - lambda: |-
                 if (response->status_code != 200 || body.empty()) {
-                  lv_obj_clear_flag(id(btn_play_gaming), LV_OBJ_FLAG_CLICKABLE);
-                  lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x1a0808), 0);
-                  lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0xff0000), 0);
+                  lv_obj_clear_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
                   return;
                 }
-                if (body.find("\"play_gaming\":") == std::string::npos) {
-                  lv_obj_clear_flag(id(btn_play_gaming), LV_OBJ_FLAG_CLICKABLE);
-                  lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x1a0808), 0);
-                  lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0xff0000), 0);
+                if (body.find("\"gaming\":") == std::string::npos) {
+                  lv_obj_clear_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
                   return;
                 }
-                bool active = body.find("\"play_gaming\":true") != std::string::npos;
-                id(play_gaming_active) = active;
+                bool active = body.find("\"gaming\":true") != std::string::npos;
+                id(gaming_active) = active;
                 if (active) {
-                  lv_obj_add_state(id(btn_play_gaming), LV_STATE_CHECKED);
-                  lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x0d2a14), 0);
-                  lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0x00ff88), 0);
+                  lv_obj_add_state(id(btn_gaming), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x0d2a14), 0);
+                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0x00ff88), 0);
                 } else {
-                  lv_obj_clear_state(id(btn_play_gaming), LV_STATE_CHECKED);
-                  lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x0d1b2a), 0);
-                  lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0x1b4965), 0);
+                  lv_obj_clear_state(id(btn_gaming), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x0d1b2a), 0);
+                  lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0x1b4965), 0);
                 }
-                lv_obj_add_flag(id(btn_play_gaming), LV_OBJ_FLAG_CLICKABLE);
+                lv_obj_add_flag(id(btn_gaming), LV_OBJ_FLAG_CLICKABLE);
 
   # Poll Cortex night_blackout state -> btn_night visual (3-state: gruen=schlaf-aktiv, blau=tag, rot=error)
   - interval: 5s
@@ -898,32 +898,32 @@ lvgl:
                         service: script.turn_on
                         data: { entity_id: script.nabu_think }
 
-              # Slot 6: PLAY+GAME (combined) — togglet musik + gaming gleichzeitig
-              # POST /api/play_gaming/toggle, GET /api/play_gaming (state.active = beide on)
+              # Slot 6: GAMING — togglet musik + gaming gleichzeitig
+              # POST /api/gaming/toggle, GET /api/gaming (state.active = gaming an)
               - button:
-                  id: btn_play_gaming
+                  id: btn_gaming
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
                   width: 72
                   height: 44
                   widgets:
                     - label:
-                        id: lbl_play_gaming
-                        text: "PLAY+GAME"
+                        id: lbl_gaming
+                        text: "GAMING"
                         text_font: font_mono_12
                         align: CENTER
                   on_release:
-                    - logger.log: "SLOT6: PLAY+GAME -> POST /api/play_gaming/toggle"
+                    - logger.log: "SLOT6: GAMING -> POST /api/gaming/toggle"
                     - http_request.post:
-                        url: "http://192.168.1.225:8900/api/play_gaming/toggle"
+                        url: "http://192.168.1.225:8900/api/gaming/toggle"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
                         capture_response: true
                         on_response:
                           - lambda: |-
                               if (response->status_code >= 400) {
-                                lv_obj_set_style_bg_color(id(btn_play_gaming), lv_color_hex(0x1a0808), 0);
-                                lv_obj_set_style_border_color(id(btn_play_gaming), lv_color_hex(0xff0000), 0);
+                                lv_obj_set_style_bg_color(id(btn_gaming), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_gaming), lv_color_hex(0xff0000), 0);
                               }
 
               # Slot 7: NIGHT — POST /api/night_blackout/toggle, GET /api/night_blackout

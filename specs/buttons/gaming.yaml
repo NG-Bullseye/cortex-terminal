@@ -1,0 +1,16 @@
+# GAMING button — startet/beendet die Gaming-Session (Toggle).
+# on = PC1 + Gaming-Mode + Stream; off = asymmetrisch (PC1 + Gaming aus, Beamer bleibt an).
+# Konsolidiert den frueheren PLAY+GAME-Button (Leo 2026-05-30).
+
+id: gaming
+label: "GAMING"
+page: CTRL
+slot: 6
+endpoint: /api/gaming/toggle
+state:
+  endpoint: /api/gaming
+  poll_interval_s: 5
+  response_field: gaming
+  active_value: true
+  active_label: "ACTIVE"
+  idle_label:   "IDLE"
