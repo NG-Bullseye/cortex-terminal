@@ -1025,15 +1025,34 @@ lvgl:
                         action: input_boolean.toggle
                         data: { entity_id: input_boolean.guest_mode }
 
-              # Slot 11: Platzhalter (TBD)
+              # Slot 11: Speech-Engine Context Reset
               - button:
-                  id: btn_slot11
+                  id: btn_ctx_reset
                   styles: style_btn
                   pressed: { styles: style_btn_pressed }
                   width: 72
                   height: 44
                   widgets:
-                    - label: { text: "—", text_font: font_mono_12, align: CENTER }
+                    - label:
+                        text: "CTX RST"
+                        text_font: font_mono_12
+                        align: CENTER
+                  on_release:
+                    - logger.log: "CTX RESET -> POST :8770/context/reset"
+                    - http_request.post:
+                        url: "http://192.168.1.225:8770/context/reset"
+                        request_headers: { Content-Type: "application/json" }
+                        body: "{}"
+                        capture_response: true
+                        on_response:
+                          - lambda: |-
+                              if (response->status_code >= 400) {
+                                lv_obj_set_style_bg_color(id(btn_ctx_reset), lv_color_hex(0x1a0808), 0);
+                                lv_obj_set_style_border_color(id(btn_ctx_reset), lv_color_hex(0xff0000), 0);
+                              } else {
+                                lv_obj_set_style_bg_color(id(btn_ctx_reset), lv_color_hex(0x0d1b2a), 0);
+                                lv_obj_set_style_border_color(id(btn_ctx_reset), lv_color_hex(0x1b4965), 0);
+                              }
 
               # Slot 12: Platzhalter (TBD)
               - button:
