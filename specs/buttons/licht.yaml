@@ -1,10 +1,12 @@
-# LICHT (helles-licht-override) — slot 1 migration.
-# Vorher: HA-Service via embedded Bearer-Token im YAML (Security-Smell).
-# Jetzt: direkt POST /api/licht/helles-licht (cortex existing endpoint).
-# Stateless — kein Polling, kein State-Display.
-
 id: licht
 label: "LICHT"
 page: CTRL
 slot: 1
-endpoint: /api/licht/helles-licht
+endpoint: /api/zimmerlicht/toggle
+state:
+  endpoint: /api/zimmerlicht/state
+  poll_interval_s: 5
+  response_field: on
+  active_value: true
+  active_label: "AN"
+  idle_label:   "AUS"

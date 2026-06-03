@@ -209,6 +209,11 @@ globals:
     type: bool
     initial_value: 'false'
     restore_value: false
+  # Cortex zimmerlicht state (drives btn_licht visual via /api/zimmerlicht/state poll)
+  - id: zimmerlicht_active
+    type: bool
+    initial_value: 'false'
+    restore_value: false
 
 # ── Sensors ────────────────────────────────────────────
 sensor:
@@ -377,6 +382,36 @@ interval:
                 } else {
                   id(status_led).turn_off().perform();
                 }
+
+  # Poll Cortex zimmerlicht state -> btn_licht visual (gruen=an, blau=aus, rot=error)
+  - interval: 5s
+    then:
+      - http_request.get:
+          url: "http://192.168.1.225:8900/api/zimmerlicht/state"
+          capture_response: true
+          max_response_buffer_size: 256
+          on_response:
+            - lambda: |-
+                if (response->status_code != 200 || body.empty()) {
+                  lv_obj_clear_flag(id(btn_licht), LV_OBJ_FLAG_CLICKABLE);
+                  lv_obj_set_style_bg_color(id(btn_licht), lv_color_hex(0x1a0808), 0);
+                  lv_obj_set_style_border_color(id(btn_licht), lv_color_hex(0xff0000), 0);
+                  return;
+                }
+                bool active = body.find("\"on\":true") != std::string::npos;
+                id(zimmerlicht_active) = active;
+                if (active) {
+                  lv_obj_add_state(id(btn_licht), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_licht), lv_color_hex(0x0d2a14), 0);
+                  lv_obj_set_style_border_color(id(btn_licht), lv_color_hex(0x00ff88), 0);
+                  lv_label_set_text(lv_obj_get_child(id(btn_licht), 0), "AN");
+                } else {
+                  lv_obj_clear_state(id(btn_licht), LV_STATE_CHECKED);
+                  lv_obj_set_style_bg_color(id(btn_licht), lv_color_hex(0x0d1b2a), 0);
+                  lv_obj_set_style_border_color(id(btn_licht), lv_color_hex(0x1b4965), 0);
+                  lv_label_set_text(lv_obj_get_child(id(btn_licht), 0), "AUS");
+                }
+                lv_obj_add_flag(id(btn_licht), LV_OBJ_FLAG_CLICKABLE);
 
   # Poll Cortex play_gaming state -> btn_play_gaming visual (3-state: gruen=both-on, blau=idle, rot=error)
   - interval: 5s
@@ -771,7 +806,8 @@ lvgl:
               pad_column: 6
               pad_row: 6
             widgets:
-              # Slot 1: LICHT — POST /api/licht/helles-licht (cortex direkt, kein HA-Detour)
+              # Slot 1: LICHT — stateful toggle /api/zimmerlicht/toggle (gruen=an, blau=aus)
+              # State-Polling via 5s-Interval oben; Release nutzt zimmerlicht_active fuer toggle-Richtung
               - button:
                   id: btn_licht
                   styles: style_btn
@@ -781,24 +817,22 @@ lvgl:
                   widgets:
                     - label:
                         id: lbl_licht
-                        text: "LICHT"
+                        text: "AUS"
                         text_font: font_mono_12
                         align: CENTER
                   on_release:
-                    - logger.log: "SLOT1: LICHT -> POST /api/licht/helles-licht"
+                    - logger.log: "SLOT1: LICHT toggle -> POST /api/zimmerlicht/toggle"
                     - http_request.post:
-                        url: "http://192.168.1.225:8900/api/licht/helles-licht"
+                        url: "http://192.168.1.225:8900/api/zimmerlicht/toggle"
                         request_headers: { Content-Type: "application/json" }
                         body: "{}"
                         capture_response: true
                         on_response:
                           - lambda: |-
                               if (response->status_code >= 400) {
+                                lv_obj_clear_flag(id(btn_licht), LV_OBJ_FLAG_CLICKABLE);
                                 lv_obj_set_style_bg_color(id(btn_licht), lv_color_hex(0x1a0808), 0);
                                 lv_obj_set_style_border_color(id(btn_licht), lv_color_hex(0xff0000), 0);
-                              } else {
-                                lv_obj_set_style_bg_color(id(btn_licht), lv_color_hex(0x0d1b2a), 0);
-                                lv_obj_set_style_border_color(id(btn_licht), lv_color_hex(0x1b4965), 0);
                               }
 
               # Slot 2: SYNC — Cortex reconciliation
