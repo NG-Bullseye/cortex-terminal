@@ -129,7 +129,9 @@ seine statische IP. `Ctrl-C` beendet das Live-Log (das Display laeuft weiter).
 
 ## 5. Verifizieren, dass das Display unter seiner IP erreichbar ist
 
-USB-Kabel kann jetzt abgezogen werden (das Display braucht nur noch Strom). Dann:
+**USB-Kabel jetzt noch NICHT abziehen** — es wird in Schritt 6 zum Gegenlesen des
+ersten OTA-Reflashs gebraucht. Das Display haengt jetzt parallel am USB (Log) **und** am
+WLAN (IP). Pruefe die Netz-Erreichbarkeit:
 
 ```bash
 # a) Erreichbar im Netz?
@@ -148,9 +150,51 @@ laden, siehe `README.md` § Diagnose-Tree).
 
 ---
 
-## 6. Ab jetzt: nur noch OTA
+## 6. Erster OTA-Reflash — am USB-Log gegenlesen (PFLICHT)
 
-Das USB-Kabel wird nicht mehr gebraucht. Jeder weitere Flash laeuft uebers WLAN:
+**Warum dieser Schritt nie uebersprungen wird:** Der USB-Flash beweist nur, dass die
+Firmware laeuft — **nicht**, dass OTA funktioniert. Bevor du das Kabel abziehst und das
+Display ggf. unerreichbar wird, baust du die OTA-Verbindung **einmal kontrolliert auf,
+waehrend du ueber USB live mitliest** und siehst, wie das Geraet den OTA-Upload annimmt,
+neu bootet und sich wieder ins WLAN haengt. Erst wenn das im USB-Log sichtbar war, ist
+das Display wirklich OTA-faehig uebergeben.
+
+Du brauchst **zwei Terminals** (Display bleibt per USB angesteckt):
+
+**Terminal A — USB-Log mitlesen** (belegt den seriellen Port, laeuft durchgehend):
+```bash
+esphome logs cortex-vvo.yaml --device /dev/ttyUSB1
+```
+
+**Terminal B — OTA-Reflash ueber die IP** (NICHT ueber USB!):
+```bash
+esphome run cortex-vvo.yaml --device 192.168.1.241
+```
+(Device-File + IP durch deine ersetzen; die IP steht in `displays.yaml`.)
+
+**Erwartung im USB-Log (Terminal A) waehrend Terminal B laeuft:**
+```
+[I][ota]: Starting OTA update from ...
+[I][ota]: OTA in progress: xx.x%
+[I][ota]: OTA update finished!
+[I][app]: Rebooting...
+[I][app]: ESPHome version 2026.x.x compiled on ...   <- frischer Boot
+[I][wifi]: WiFi Connected ... IP: 192.168.1.241        <- wieder im Netz
+```
+Siehst du `OTA update finished` + den frischen Boot + `WiFi Connected` im **USB-Log**,
+ist die OTA-Strecke bewiesen. `Ctrl-C` in Terminal A beendet das Log.
+
+> **Stolperstein:** Solange Terminal A den Port belegt, kann **kein zweiter** Prozess
+> ueber USB flashen — das ist gewollt, Terminal B geht ja absichtlich uebers Netz. Wenn
+> Terminal B `Connecting via USB...` zeigt statt OTA, hast du die **IP** als `--device`
+> vergessen und flasht versehentlich seriell.
+
+---
+
+## 7. Ab jetzt: nur noch OTA
+
+Jetzt darf das USB-Kabel ab (das Display braucht nur noch Strom). Jeder weitere Flash
+laeuft uebers WLAN — exakt wie der Reflash aus Schritt 6:
 ```bash
 esphome run cortex-terminal.yaml --device 192.168.1.240
 ```
