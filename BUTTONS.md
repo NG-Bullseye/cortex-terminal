@@ -1,6 +1,6 @@
 # CYD Panel - Button Reference
 
-Alle Buttons in `cyd-panel.yaml`. Rot = Backend down (alle Typen).
+Alle Buttons in `cortex-terminal.yaml`. Rot = Backend down (alle Typen).
 
 ## Typen
 

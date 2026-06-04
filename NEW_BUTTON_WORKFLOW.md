@@ -2,7 +2,7 @@
 
 Schritt-fuer-Schritt fuer einen neuen Button auf dem CYD-Panel. Spec-driven,
 direkt zu Cortex (kein HA-Detour). Vorbild: Slot 3 Blackout-Button
-(`cyd-panel.yaml` ~672-697 + Polling ~302-342 + Global ~192-196).
+(`cortex-terminal.yaml` ~672-697 + Polling ~302-342 + Global ~192-196).
 
 > **Schema-Referenz:** `BUTTON_SPEC.md` · **Style/Visual:** `BUTTONS.md` · **Anker:** `AGENTS.md`
 
@@ -60,9 +60,9 @@ Output: vier framed Bloecke an stdout, mit Insertion-Anweisungen.
 
 | Block | Zielort | Wann | Was |
 |---|---|---|---|
-| **1** | `cyd-panel.yaml` `globals:` | nur stateful | `<id>_active` Bool-Global |
-| **2** | `cyd-panel.yaml` `interval:` | nur stateful | 5s GET-Poll + Lambda |
-| **3** | `cyd-panel.yaml` `pages:` | immer | LVGL-Widget + on_release |
+| **1** | `cortex-terminal.yaml` `globals:` | nur stateful | `<id>_active` Bool-Global |
+| **2** | `cortex-terminal.yaml` `interval:` | nur stateful | 5s GET-Poll + Lambda |
+| **3** | `cortex-terminal.yaml` `pages:` | immer | LVGL-Widget + on_release |
 | **4** | `~/cortex/main.py` | wenn Endpoint neu | FastAPI-Route-Stub |
 
 Stateless ohne neuen Endpoint = nur Block 3. Stateful mit neuem Endpoint =
@@ -71,7 +71,7 @@ alle vier. Scaffolder sagt im Output explizit welche Bloecke noetig sind.
 ### 3. Bloecke einsetzen
 
 Jeder Block hat einen Anker-Kommentar fuer die Suche. Beispiel-Anker fuer
-Block 3 auf CTRL: `# Slot 7-9: Platzhalter` (`cyd-panel.yaml` ~742). Block 3
+Block 3 auf CTRL: `# Slot 7-9: Platzhalter` (`cortex-terminal.yaml` ~742). Block 3
 ersetzt den `—`-Placeholder-Block.
 
 Block 1 (globals): unter `# Cortex User-Blackout state` (~192) anhaengen.
@@ -120,8 +120,8 @@ curl -s http://localhost:8900<endpoint> | head    # Smoke-Test
 ```bash
 cd ~/esp_repos/cortex-terminal
 ping -c 2 -W 2 192.168.1.240                              # Reachability
-esphome compile cyd-panel.yaml                            # ~150s
-esphome upload  cyd-panel.yaml --device 192.168.1.240     # ~6s OTA
+esphome compile cortex-terminal.yaml                            # ~150s
+esphome upload  cortex-terminal.yaml --device 192.168.1.240     # ~6s OTA
 ping -c 1 192.168.1.240                                   # verify back
 ```
 
@@ -134,7 +134,7 @@ Details + Gotchas: `AGENTS.md` §"Build / Flash (OTA)".
 2. **State-Endpoint manuell:** `curl http://localhost:8900<state.endpoint>`
    → JSON enthaelt `response_field: <active_value>`.
 3. **Button am Geraet:** Tap → `logger.log` in seriellen ESPHome-Logs sichtbar
-   (`esphome logs cyd-panel.yaml --device 192.168.1.240`).
+   (`esphome logs cortex-terminal.yaml --device 192.168.1.240`).
 4. **State-Sync:** State im Cortex aendern (z.B. zweiter Endpoint-Call) →
    Button-Farbe folgt innerhalb `poll_interval_s`.
 5. **Error-Handling:** `docker stop cortex` → Button wird rot + non-clickable.
@@ -173,5 +173,5 @@ nachtraeglich auf direct-to-Cortex umgestellt werden:
 - Schema: `BUTTON_SPEC.md`
 - Visuell: `BUTTONS.md`
 - Beispiele: `specs/buttons/_example_*.yaml`
-- Vorbild-Implementation: Slot 3 Blackout-Button (`cyd-panel.yaml` ~672-697 + ~302-342 + ~192-196)
+- Vorbild-Implementation: Slot 3 Blackout-Button (`cortex-terminal.yaml` ~672-697 + ~302-342 + ~192-196)
 - Cortex-Endpoint-Pattern: `~/cortex/main.py` Suche nach `add_api_route`

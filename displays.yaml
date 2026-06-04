@@ -1,0 +1,28 @@
+# ════════════════════════════════════════════════════════════════════
+# displays.yaml — Display-Registry (NAME → IP → Firmware)
+# ────────────────────────────────────────────────────────────────────
+# Zentrale Übersicht aller CYD-Displays dieses Repos. IPs werden beim
+# Initial-Flash fix vergeben (statisch, manual_ip) → hier hardcoded.
+#
+# WICHTIG: Der funktionale Wert lebt in den `substitutions` des jeweiligen
+# Device-Files (static_ip / device_name). Diese Registry ist die menschen-/
+# ops-lesbare Wahrheit und muss mit den Device-Files übereinstimmen. Beim
+# Hinzufügen eines Displays: hier eintragen UND Device-File anlegen.
+# IP-Freiheit gegen ~/cortex/docs/network-devices.md prüfen.
+#
+# Deploy:  esphome compile <file>            # compile-check (kein flash)
+#          esphome run <file> --device <ip>  # OTA-Flash + Live-Log
+# ════════════════════════════════════════════════════════════════════
+
+displays:
+  cortex-terminal:
+    file: cortex-terminal.yaml
+    hostname: cyd-panel            # Firmware-name (HA-gepairt, NICHT umbenennen)
+    ip: 192.168.1.240
+    role: "Haupt-Panel am PC-Tisch — voller UI (CTRL / CTRL2 / FEED / AUDIO / DEV)"
+
+  cortex-vvo:
+    file: cortex-vvo.yaml
+    hostname: cortex-vvo
+    ip: 192.168.1.241
+    role: "Zweitdisplay — spiegelt CTRL2-Page; VVO-Abfahrtsinhalt folgt Welle 3"

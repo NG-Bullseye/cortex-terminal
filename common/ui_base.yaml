@@ -1,0 +1,106 @@
+# ════════════════════════════════════════════════════════════════════
+# common/ui_base.yaml — gemeinsames UI-Fundament (wiederverwendbar)
+# ────────────────────────────────────────────────────────────────────
+# Fonts + LVGL-Basis (Display/Touch-Bindung, Buffer, Default-Font) +
+# Style-Definitionen. Kein Bezug auf konkrete Pages/Widgets — die
+# `lvgl.pages` werden pro Device-File ergaenzt (Package-Merge).
+# ════════════════════════════════════════════════════════════════════
+
+font:
+  - file: "gfonts://Share Tech Mono"
+    id: font_mono_24
+    size: 24
+    glyphs: "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ÄÖÜäöüß"
+  - file: "gfonts://Share Tech Mono"
+    id: font_mono_16
+    size: 16
+    glyphs: "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ÄÖÜäöüß"
+  - file: "gfonts://Share Tech Mono"
+    id: font_mono_12
+    size: 12
+    glyphs: "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ÄÖÜäöüß"
+  - file: "gfonts://Orbitron"
+    id: font_header
+    size: 18
+    glyphs: "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]_abcdefghijklmnopqrstuvwxyz~ ÄÖÜäöüß"
+
+# ── LVGL Basis + Styles (Pages kommen aus dem Device-File) ─────────────
+lvgl:
+  displays: main_display
+  touchscreens: main_touch
+  buffer_size: 25%
+  default_font: font_mono_12
+
+  style_definitions:
+    # Deep space background
+    - id: style_space
+      bg_color: 0x0a0a1a
+      bg_opa: COVER
+      text_color: 0x00ff88
+
+    # Header bar
+    - id: style_header
+      bg_color: 0x0f1a3e
+      bg_opa: COVER
+      text_color: 0x00ccff
+      border_color: 0x00ccff
+      border_width: 1
+      border_side: BOTTOM
+      pad_all: 4
+
+    # Script button (Star Wars panel style)
+    - id: style_btn
+      bg_color: 0x0d1b2a
+      bg_opa: COVER
+      text_color: 0x00ff88
+      border_color: 0x1b4965
+      border_width: 2
+      radius: 2
+      pad_all: 4
+      shadow_color: 0x00ff88
+      shadow_opa: 30%
+      shadow_spread: 1
+      shadow_width: 6
+
+    # Button pressed
+    - id: style_btn_pressed
+      bg_color: 0x1b4965
+      text_color: 0x00ffcc
+      border_color: 0x00ff88
+      shadow_opa: 60%
+
+    # Alert style (red)
+    - id: style_alert
+      bg_color: 0x1a0a0a
+      bg_opa: COVER
+      text_color: 0xe94560
+      border_color: 0xe94560
+      border_width: 1
+      radius: 2
+      pad_all: 6
+
+    # Feed panel
+    - id: style_feed
+      bg_color: 0x0a0f1a
+      bg_opa: COVER
+      text_color: 0x00ff88
+      border_color: 0x1b4965
+      border_width: 1
+      radius: 2
+      pad_all: 6
+
+    # Nav button
+    - id: style_nav
+      bg_color: 0x0f1a3e
+      bg_opa: COVER
+      text_color: 0x00ccff
+      border_color: 0x00ccff
+      border_width: 1
+      radius: 0
+      pad_all: 4
+
+    # Nav active
+    - id: style_nav_active
+      bg_color: 0x1b4965
+      text_color: 0x00ffcc
+      border_color: 0x00ff88

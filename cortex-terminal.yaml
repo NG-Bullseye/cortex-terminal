@@ -1,186 +1,26 @@
+# ════════════════════════════════════════════════════════════════════
+# DISPLAY: cortex-terminal  ("Nabu Terminal", PC-Tisch)
+# ────────────────────────────────────────────────────────────────────
+# Logischer Name: cortex-terminal · Firmware-Hostname: cyd-panel (HA-gepairt,
+# flash-fix — NICHT umbenennen) · IP: 192.168.1.240 (siehe displays.yaml).
+# Diese Datei = Identitaet + UI. Plattform/Hardware kommt aus common/.
+# ════════════════════════════════════════════════════════════════════
+
+substitutions:
+  device_name: cyd-panel          # Firmware-Hostname (muss displays.yaml entsprechen)
+  static_ip: 192.168.1.240        # flash-fix (muss displays.yaml entsprechen)
+
 esphome:
-  name: cyd-panel
+  name: ${device_name}
   friendly_name: "Nabu Terminal"
 
-esp32:
-  board: esp32dev
-  framework:
-    type: arduino
-
-logger:
-  level: DEBUG
-
-wifi:
-  ssid: !env_var ESPHOME_WIFI_SSID
-  password: !env_var ESPHOME_WIFI_PASSWORD
-  manual_ip:
-    static_ip: 192.168.1.240
-    gateway: 192.168.1.1
-    subnet: 255.255.255.0
-
-api:
-  encryption:
-    key: !secret api_key
-
-ota:
-  - platform: esphome
-    password: !secret ota_password
-
-# Web server for direct HTTP access (MCP endpoint)
-web_server:
-  port: 80
-
-# ── HTTP Request (HA API calls) ─────────────────────────
-http_request:
-  id: http_request_component
-  useragent: esphome/cyd-panel
-  timeout: 3s
-
-# ── SPI Buses ──────────────────────────────────────────
-spi:
-  - id: tft
-    clk_pin: 14
-    mosi_pin: 13
-    miso_pin:
-      number: 12
-      ignore_strapping_warning: true
-  - id: touch
-    clk_pin: 25
-    mosi_pin: 32
-    miso_pin: 39
-
-# ── Outputs ────────────────────────────────────────────
-output:
-  - id: backlight_pwm
-    platform: ledc
-    pin: 21
-  - id: led_red
-    platform: ledc
-    pin: 4
-    inverted: true
-  - id: led_green
-    platform: ledc
-    pin: 16
-    inverted: true
-  - id: led_blue
-    platform: ledc
-    pin: 17
-    inverted: true
-
-light:
-  # Status-LED bleibt light (RGB — braucht color-control). Backlight ist
-  # zu switch konvertiert (siehe unten) damit cortex nicht "alle lichter aus"
-  # auch das display-backlight ausschaltet.
-  - id: status_led
-    platform: rgb
-    red: led_red
-    green: led_green
-    blue: led_blue
-    name: "Status LED"
-    restore_mode: ALWAYS_OFF
-
-# ── Backlight als SWITCH statt LIGHT ──────────────────────────────────
-# Reason: cortex/HA interpretiert "light.*" entities als steuerbare Wohnraum-
-# beleuchtung. Display-backlight des CYD-Panels ist aber kein Wohnraum-licht
-# und sollte nicht von "alle lichter aus" mitgemacht werden. Als switch ist
-# das toggle (on/off) trotzdem moeglich, aber HA klassifiziert nicht als
-# light → routinen ignorieren das. Dim-level ist auf 80% fixed.
-switch:
-  - platform: template
-    id: backlight
-    name: "Display Backlight"
-    optimistic: true
-    restore_mode: ALWAYS_ON
-    turn_on_action:
-      - output.set_level:
-          id: backlight_pwm
-          level: 80%
-    turn_off_action:
-      - output.set_level:
-          id: backlight_pwm
-          level: 0%
-
-# ── Display ────────────────────────────────────────────
-display:
-  - id: main_display
-    platform: ili9xxx
-    model: ILI9341
-    spi_id: tft
-    cs_pin:
-      number: 15
-      ignore_strapping_warning: true
-    dc_pin:
-      number: 2
-      ignore_strapping_warning: true
-    invert_colors: false
-    transform:
-      swap_xy: true
-      mirror_x: true
-      mirror_y: true
-    dimensions:
-      width: 320
-      height: 240
-    update_interval: never
-    auto_clear_enabled: false
-
-# ── Touchscreen ────────────────────────────────────────
-touchscreen:
-  - id: main_touch
-    platform: xpt2046
-    spi_id: touch
-    cs_pin: 33
-    # interrupt_pin entfernt - erzwingt Polling-Modus (kein SPI-Read wenn IRQ nicht LOW)
-    threshold: 1000
-    on_touch:
-      then:
-        - globals.set:
-            id: last_touch_x
-            value: !lambda 'return touch.x;'
-        - globals.set:
-            id: last_touch_y
-            value: !lambda 'return touch.y;'
-        - logger.log:
-            format: "TOUCH: x=%d y=%d (raw_x=%d raw_y=%d)"
-            args: [touch.x, touch.y, touch.x_raw, touch.y_raw]
-        - lvgl.label.update:
-            id: lbl_dev_coords
-            text: !lambda |-
-              char buf[32];
-              snprintf(buf, sizeof(buf), "LAST: x=%-4d y=%-4d", touch.x, touch.y);
-              return std::string(buf);
-    calibration:
-      x_min: 280
-      x_max: 3860
-      y_min: 340
-      y_max: 3860
-    transform:
-      swap_xy: true
-      mirror_x: true
-      mirror_y: true
-
-# Diagnose: IRQ-Pin GPIO36 überwachen
-binary_sensor:
-  - platform: gpio
-    pin:
-      number: 36
-      mode: INPUT
-    name: "Touch IRQ"
-    id: touch_irq
-    filters:
-      - delayed_on: 0ms
-    on_press:
-      - logger.log: "IRQ36: LOW (touch detected by hardware)"
-    on_release:
-      - logger.log: "IRQ36: HIGH (released)"
+packages:
+  hardware: !include common/hardware.yaml
+  ui_base: !include common/ui_base.yaml
 
 # ── Globals ────────────────────────────────────────────
+# (last_touch_x/y leben in common/hardware.yaml — Plattform-Tracking)
 globals:
-  - id: last_touch_x
-    type: int
-    initial_value: '0'
-  - id: last_touch_y
-    type: int
-    initial_value: '0'
   # Feed button IDs stored for click handler callback
   - id: feed_btn_ids
     type: std::vector<std::string>
@@ -215,24 +55,7 @@ globals:
     initial_value: 'false'
     restore_value: false
 
-# ── Sensors ────────────────────────────────────────────
-sensor:
-  - platform: adc
-    pin: 34
-    name: "Ambient Light"
-    id: ambient_light
-    update_interval: 30s
-  - platform: wifi_signal
-    name: "WiFi Signal"
-    id: wifi_rssi
-    update_interval: 60s
-  - platform: uptime
-    name: "Uptime"
-    id: uptime_sec
-
 # ── Text Sensors (HA → Display) ───────────────────────
-
-# Nabu Kommunikationskanal: HA/MCP setzt diesen Text
 text_sensor:
   - platform: template
     name: "Nabu Message"
@@ -339,9 +162,19 @@ time:
                 snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
                 return std::string(buf);
 
-# ── Fonts ──────────────────────────────────────────────
 # ── Feed Polling + Fix Dispatch ────────────────────────
 interval:
+  # DEV-Page Koordinaten-Anzeige aus Plattform-Globals (entkoppelt vom
+  # geteilten touchscreen.on_touch in common/hardware.yaml)
+  - interval: 500ms
+    then:
+      - lvgl.label.update:
+          id: lbl_dev_coords
+          text: !lambda |-
+            char buf[32];
+            snprintf(buf, sizeof(buf), "LAST: x=%-4d y=%-4d", id(last_touch_x), id(last_touch_y));
+            return std::string(buf);
+
   # Poll Cortex User-Blackout state -> Slot3 button visual + Status LED (T-13)
   - interval: 5s
     then:
@@ -655,105 +488,8 @@ interval:
                   lv_label_set_text(id(lbl_feed_updated), tsbuf);
                 }
 
-font:
-  - file: "gfonts://Share Tech Mono"
-    id: font_mono_24
-    size: 24
-    glyphs: "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ÄÖÜäöüß"
-  - file: "gfonts://Share Tech Mono"
-    id: font_mono_16
-    size: 16
-    glyphs: "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ÄÖÜäöüß"
-  - file: "gfonts://Share Tech Mono"
-    id: font_mono_12
-    size: 12
-    glyphs: "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ÄÖÜäöüß"
-  - file: "gfonts://Orbitron"
-    id: font_header
-    size: 18
-    glyphs: "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]_abcdefghijklmnopqrstuvwxyz~ ÄÖÜäöüß"
-
-# ── LVGL ───────────────────────────────────────────────
+# ── LVGL Pages (ergaenzt common/ui_base.yaml lvgl-Basis) ───────────────
 lvgl:
-  displays: main_display
-  touchscreens: main_touch
-  buffer_size: 25%
-  default_font: font_mono_12
-
-  style_definitions:
-    # Deep space background
-    - id: style_space
-      bg_color: 0x0a0a1a
-      bg_opa: COVER
-      text_color: 0x00ff88
-
-    # Header bar
-    - id: style_header
-      bg_color: 0x0f1a3e
-      bg_opa: COVER
-      text_color: 0x00ccff
-      border_color: 0x00ccff
-      border_width: 1
-      border_side: BOTTOM
-      pad_all: 4
-
-    # Script button (Star Wars panel style)
-    - id: style_btn
-      bg_color: 0x0d1b2a
-      bg_opa: COVER
-      text_color: 0x00ff88
-      border_color: 0x1b4965
-      border_width: 2
-      radius: 2
-      pad_all: 4
-      shadow_color: 0x00ff88
-      shadow_opa: 30%
-      shadow_spread: 1
-      shadow_width: 6
-
-    # Button pressed
-    - id: style_btn_pressed
-      bg_color: 0x1b4965
-      text_color: 0x00ffcc
-      border_color: 0x00ff88
-      shadow_opa: 60%
-
-    # Alert style (red)
-    - id: style_alert
-      bg_color: 0x1a0a0a
-      bg_opa: COVER
-      text_color: 0xe94560
-      border_color: 0xe94560
-      border_width: 1
-      radius: 2
-      pad_all: 6
-
-    # Feed panel
-    - id: style_feed
-      bg_color: 0x0a0f1a
-      bg_opa: COVER
-      text_color: 0x00ff88
-      border_color: 0x1b4965
-      border_width: 1
-      radius: 2
-      pad_all: 6
-
-    # Nav button
-    - id: style_nav
-      bg_color: 0x0f1a3e
-      bg_opa: COVER
-      text_color: 0x00ccff
-      border_color: 0x00ccff
-      border_width: 1
-      radius: 0
-      pad_all: 4
-
-    # Nav active
-    - id: style_nav_active
-      bg_color: 0x1b4965
-      text_color: 0x00ffcc
-      border_color: 0x00ff88
-
   pages:
     # ═══════════════════════════════════════════════════
     # PAGE 1: MAIN - Scripts + Status
@@ -788,8 +524,6 @@ lvgl:
                   x: -4
 
         # ── Slot Buttons Grid (3x3, einheitlich 99x44) ──
-        # Dieselbe Geometrie auf allen Pages (CTRL/FEED/AUDIO/DEV).
-        # CTRL = User-designed (Leo). Slots 7-9 erstmal frei (TBD-Platzhalter).
         - obj:
             width: 310
             height: 144
@@ -807,7 +541,6 @@ lvgl:
               pad_row: 6
             widgets:
               # Slot 1: LICHT — stateful toggle /api/zimmerlicht/toggle (gruen=an, blau=aus)
-              # State-Polling via 5s-Interval oben; Release nutzt zimmerlicht_active fuer toggle-Richtung
               - button:
                   id: btn_licht
                   styles: style_btn
@@ -852,11 +585,6 @@ lvgl:
                         body: "{}"
 
               # Slot 3: BLACKOUT — toggle Cortex User-Blackout (state-driven, amber wenn ON)
-              # Bugfix: vorher toggelte der Button input_boolean.nabu_blackout in HA,
-              # waehrend der 5s-Poll oben /api/blackout (user_blackout) liest →
-              # Button-Visual und Button-Action standen auf zwei verschiedenen
-              # State-Quellen. Press hatte keinen Effekt auf das angezeigte State.
-              # Fix: direkt /api/blackout/{on,off} POSTen, basierend auf aktuellem Poll-State.
               - button:
                   id: btn_slot3
                   styles: style_btn
@@ -912,7 +640,6 @@ lvgl:
                         data: { entity_id: script.nabu_think }
 
               # Slot 6: PLAY+GAME (combined) — togglet musik + gaming gleichzeitig
-              # POST /api/play_gaming/toggle, GET /api/play_gaming (state.active = beide on)
               - button:
                   id: btn_play_gaming
                   styles: style_btn
@@ -940,7 +667,6 @@ lvgl:
                               }
 
               # Slot 7: NIGHT — POST /api/night_blackout/toggle, GET /api/night_blackout
-              # Visual via 5s-interval-poll (gruen=schlaf-aktiv, blau=tag, rot=error)
               - button:
                   id: btn_night
                   styles: style_btn
@@ -968,8 +694,6 @@ lvgl:
                               }
 
               # Slot 8: LICHT-ONLY — toggle Lights-only-Policy (state-driven, gruen wenn ON)
-              # POST /api/lights_only/toggle, GET /api/lights_only (5s-poll oben aktualisiert Visual)
-              # (ersetzte GAMING-Button — Gaming-Logik in cortex bleibt, nur Button getauscht)
               - button:
                   id: btn_lights_only
                   styles: style_btn
@@ -997,9 +721,6 @@ lvgl:
                               }
 
               # Slot 9: PRED-M — toggle Watchdog Predictive Maintenance (WD-45).
-              # State-Quelle = input_boolean.cortex_predictive_maintenance.
-              # Visual via pdm_state-Stream (text_sensor unten), analog Slot4.
-              # (ersetzt frueheren HOME-Debug-Button /api/user_home/force)
               - button:
                   id: btn_pdm
                   styles: style_btn
@@ -1018,7 +739,7 @@ lvgl:
                         action: input_boolean.toggle
                         data: { entity_id: input_boolean.cortex_predictive_maintenance }
 
-        # ── Cortex Statuskanal (bottom) — pro Page repliziert ──
+        # ── Cortex Statuskanal (bottom) ──
         - obj:
             styles: style_feed
             width: 310
@@ -1032,8 +753,6 @@ lvgl:
                   text_color: 0x1b4965
                   x: 0
                   y: 0
-              # Cortex-Statuskanal: aktive Mode + Slot. Faengt cortex_status
-              # text_sensor wenn HA einen exposed (heute Default-Text).
               - label:
                   id: lbl_nabu_msg
                   text: "Cortex bereit · Mode: Idle"
@@ -1118,7 +837,7 @@ lvgl:
                     - lvgl.page.show: page_dev
 
     # ═══════════════════════════════════════════════════
-    # PAGE 1B: CTRL2 — HA-direct Switch-Toggles (Pflanze, Kerze, Strahler, Beamer, Helix, Kaktus, LEDs, FireTV)
+    # PAGE 1B: CTRL2 — HA-direct Switch-Toggles
     # ═══════════════════════════════════════════════════
     - id: page_ctrl2
       bg_color: 0x0a0a1a
@@ -1783,7 +1502,7 @@ lvgl:
                   text_color: 0x00ccff
                   align: CENTER
 
-        # ── SCADA-Statusblock (live, ueber HA-text_sensor cortex_status spaeter) ──
+        # ── SCADA-Statusblock ──
         - label:
             text: "+----------------- CORTEX -----------------+"
             text_font: font_mono_12

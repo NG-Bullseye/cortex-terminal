@@ -91,7 +91,7 @@ Der Scaffolder fixiert diese Werte — Spec ueberschreibt sie nicht.
 | Active-Style | `bg=0x0d2a14, border=0x00ff88` (gruen) | Mirror blackout-Button |
 | Idle-Style | `style_btn` (default-blau) | Konsistent mit restlichen Slots |
 | Error-Style | `bg=0x1a0808, border=0xff0000`, `clickable=false` | "Backend down" universal |
-| Cortex-Host | `http://192.168.1.225:8900` | Aus cyd-panel.yaml geerbt |
+| Cortex-Host | `http://192.168.1.225:8900` | Aus cortex-terminal.yaml geerbt |
 | Widget-Size | `99x44` (CTRL-Grid) | 3x3-Grid-Slot |
 | Font | `font_mono_12` | CTRL-Default |
 | HTTP-Method action | `POST`, body `{}` | Convention: Cortex-Toggle-Endpoints sind POST |
@@ -102,7 +102,7 @@ Der Scaffolder fixiert diese Werte — Spec ueberschreibt sie nicht.
 Spec wird vor Generierung gegen folgende Regeln gepruefen:
 
 - `id` matcht `^[a-z][a-z0-9_]*$` und endet **nicht** auf `_active` (collision mit Global)
-- `id` und alle abgeleiteten LVGL-IDs (`btn_<id>`, `lbl_<id>`) existieren noch nicht in `cyd-panel.yaml`
+- `id` und alle abgeleiteten LVGL-IDs (`btn_<id>`, `lbl_<id>`) existieren noch nicht in `cortex-terminal.yaml`
 - `page` ist genau einer von `CTRL|AUDIO|DEV`
 - `slot` ist 1..9 wenn `page=CTRL`, sonst irrelevant
 - bei `page=CTRL`: `id: btn_slot<slot>` muss aktuell ein `—`-Placeholder sein (sonst abort)
@@ -123,8 +123,8 @@ Spec wird vor Generierung gegen folgende Regeln gepruefen:
 
 1. Leo legt `specs/buttons/<id>.yaml` an
 2. `python -m tools.button_scaffolder.scaffold_button specs/buttons/<id>.yaml`
-3. Vier Bloecke an stdout → Leo paste-t in `cyd-panel.yaml` + `~/cortex/main.py`
+3. Vier Bloecke an stdout → Leo paste-t in `cortex-terminal.yaml` + `~/cortex/main.py`
 4. Cortex-Handler-Stub wird ausgefleischt (manueller Schritt — Event-Emit etc.)
-5. Compile + OTA: `esphome compile cyd-panel.yaml && esphome upload cyd-panel.yaml --device 192.168.1.240`
+5. Compile + OTA: `esphome compile cortex-terminal.yaml && esphome upload cortex-terminal.yaml --device 192.168.1.240`
 6. Verify: `curl localhost:8900<state.endpoint>` + Tap-Test am Geraet
 7. Spec bleibt im Repo committed → Drift-Lint kann spaeter live-yaml gegen `specs/buttons/*.yaml` verifizieren
