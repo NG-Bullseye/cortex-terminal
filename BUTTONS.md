@@ -58,13 +58,12 @@ Fix-Dispatch: 1s-Intervall POST nach `http://192.168.1.225:8900/api/feed/fix` (Z
 | ID | Label | Typ | Aktion | State-Entity |
 |----|-------|-----|--------|--------------|
 | btn_slot1 | LICHT | Push | `script.helles_licht_override` (via http_request.post!) | - |
-| btn_slot2 | NABU | Push | `rest_command.nabu_apply_current_slot` | - |
-| btn_slot3 | BLACKOUT | State | `input_boolean.toggle` | `input_boolean.nabu_blackout` |
-| btn_slot4 | REBOUND | State | `input_boolean.toggle` | `input_boolean.nabu_rebound` |
+| btn_slot2 | SYNC | Push | `POST /api/sync_to_vibe` (Cortex reconciliation) | - |
+| btn_slot3 | BLACKOUT | Push (poll-state) | `POST /api/blackout/{on,off}` je nach 5s-Poll-State | (kein HA-helper; `blackout_active` aus Cortex-Poll) |
+| btn_slot4 | FIRE TV | Push | `script.cortex_firetv` → chat-service `/firetv/smart` | - |
 | btn_slot5 | THINK | Push | `script.nabu_think` | - |
 
-State-Farben: BLACKOUT ON=amber(`0x2a1a00/0xff8800`), REBOUND ON=gruen(`0x0a2a0a/0x00ff44`).
-Listener: BLACKOUT ~229-259, REBOUND ~261-279. REBOUND hat kein unavailable-handling (TODO).
+State-Farbe: BLACKOUT ON=gruen(`0x0d2a14/0x00ff88`), via 5s-Poll von `/api/blackout` getrieben.
 
 ### FEED (page_feed, ~798-904)
 Dynamisch — siehe Feed Button oben.

@@ -58,7 +58,7 @@ state:
 ## Beispiel: stateless
 
 ```yaml
-id: nabu_apply
+id: cortex_apply
 label: "APPLY"
 page: CTRL
 slot: 8

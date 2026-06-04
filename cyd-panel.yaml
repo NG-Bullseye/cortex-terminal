@@ -1,6 +1,6 @@
 esphome:
   name: cyd-panel
-  friendly_name: "Nabu Terminal"
+  friendly_name: "Cortex Terminal"
 
 esp32:
   board: esp32dev
@@ -232,13 +232,8 @@ sensor:
 
 # ── Text Sensors (HA → Display) ───────────────────────
 
-# Nabu Kommunikationskanal: HA/MCP setzt diesen Text
+# Cortex Kommunikationskanal: HA/MCP setzt diesen Text
 text_sensor:
-  - platform: template
-    name: "Nabu Message"
-    id: nabu_message
-    update_interval: never
-    lambda: 'return {"SYSTEMS NOMINAL"};'
   - platform: template
     name: "Watchdog Alert"
     id: watchdog_alert
@@ -272,26 +267,6 @@ text_sensor:
   # Slot3 BLACKOUT state: NICHT mehr via HA, Cortex-poll (interval 5s unten)
   # ist die einzige Wahrheit. Der HA-Helper input_boolean.nabu_blackout war
   # unavailable und hat den Button rot+dead gesetzt → entfernt.
-
-  - platform: homeassistant
-    name: "Slot4 REBOUND state"
-    id: slot4_state
-    entity_id: input_boolean.nabu_rebound
-    on_value:
-      then:
-        - if:
-            condition:
-              lambda: 'return x == "on";'
-            then:
-              - lvgl.obj.update:
-                  id: btn_slot4
-                  bg_color: 0x0a2a0a
-                  border_color: 0x00ff44
-            else:
-              - lvgl.obj.update:
-                  id: btn_slot4
-                  bg_color: 0x0a0a1a
-                  border_color: 0x1a1a3a
 
   # Slot9 PRED-M state: Watchdog Predictive Maintenance an/aus (WD-45).
   # gruen = aktiv (30-min ESP-fleet-sweep laeuft), dim = gemutet.
@@ -776,7 +751,7 @@ lvgl:
                   align: LEFT_MID
                   x: 4
               - label:
-                  text: "NABU"
+                  text: "CORTEX"
                   text_font: font_header
                   text_color: 0xe94560
                   align: CENTER
