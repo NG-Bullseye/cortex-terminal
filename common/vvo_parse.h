@@ -37,14 +37,6 @@ inline long long date_ms(const std::string &obj, const char *key) {
   return v;
 }
 
-// S-Bahn nur Richtung Neustadt: suedwaerts gehende Endpunkte verwerfen.
-inline bool sbahn_southbound(const std::string &dir) {
-  static const char *deny[] = {"Schandau", "Pirna", "Heidenau", "Schöna",
-                               "Nationalpark", "Tharandt", "Freiberg"};
-  for (auto d : deny) if (dir.find(d) != std::string::npos) return true;
-  return false;
-}
-
 // Display-Breite in MONOSPACE-Zellen = Anzahl UTF-8-Codepoints (Umlaut ü/ä/ö/ß
 // ist 2 Bytes aber 1 Zelle). Byte-basiertes %-Ns verschob sonst die Spalte.
 inline int disp_len(const std::string &s) {
@@ -62,9 +54,15 @@ inline std::string trunc_disp(const std::string &s, int n) {
   return s.substr(0, i);
 }
 
+// Whitelist-Eintrag: nur diese Linie in diese Richtung zeigen.
+// `dir` ist ein Substring des VVO-"Direction"-Feldes (z.B. "Bühlau").
+struct Allow { const char *line; const char *dir; };
+
 // Body parsen, bis zu `max_rows` Zeilen "LINIE  ZIEL  N'" ins Label setzen.
+// Nur Abfahrten die zu einem allow[]-Eintrag passen werden angezeigt.
 inline void render(const std::string &body, lv_obj_t *label,
-                   esphome::time::RealTimeClock *clk, int max_rows) {
+                   esphome::time::RealTimeClock *clk, int max_rows,
+                   const Allow *allow, int n_allow) {
   auto now = clk->now();
   long long now_s = now.is_valid() ? (long long) now.timestamp : 0;
 
@@ -101,9 +99,16 @@ inline void render(const std::string &body, lv_obj_t *label,
 
       std::string line = str_field(obj, "LineName");
       std::string dir  = str_field(obj, "Direction");
-      std::string mot  = str_field(obj, "Mot");
       if (line.empty()) continue;
-      if (mot == "SuburbanRailway" && sbahn_southbound(dir)) continue;
+
+      // Strikte Whitelist: nur exakt-Linie + Richtungs-Substring durchlassen.
+      bool ok = false;
+      for (int a = 0; a < n_allow; a++)
+        if (line == allow[a].line && dir.find(allow[a].dir) != std::string::npos) {
+          ok = true;
+          break;
+        }
+      if (!ok) continue;
 
       long long ms = date_ms(obj, "RealTime");
       if (ms == 0) ms = date_ms(obj, "ScheduledTime");

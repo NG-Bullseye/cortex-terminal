@@ -46,13 +46,15 @@ interval:
       - http_request.post:
           url: "https://webapi.vvo-online.de/dm?format=json"
           request_headers: { Content-Type: "application/json" }
-          body: '{"stopid":"33000028","limit":12,"mot":["Tram","SuburbanRailway"],"format":"json"}'
+          body: '{"stopid":"33000028","limit":40,"mot":["Tram","SuburbanRailway"],"format":"json"}'
           capture_response: true
-          max_response_buffer_size: 8192
+          max_response_buffer_size: 24576
           on_response:
             - lambda: |-
                 if (response->status_code != 200 || body.empty()) return;
-                vvo::render(body, id(lbl_hbf), id(ha_time), 12);
+                static const vvo::Allow hbf[] = {
+                  {"S1", "Meißen"}, {"10", "Striesen"}, {"8", "Infineon"}};
+                vvo::render(body, id(lbl_hbf), id(ha_time), 12, hbf, 3);
 
   - interval: 30s
     then:
@@ -60,13 +62,15 @@ interval:
       - http_request.post:
           url: "https://webapi.vvo-online.de/dm?format=json"
           request_headers: { Content-Type: "application/json" }
-          body: '{"stopid":"33000032","limit":12,"mot":["Tram","SuburbanRailway"],"format":"json"}'
+          body: '{"stopid":"33000032","limit":40,"mot":["Tram","SuburbanRailway"],"format":"json"}'
           capture_response: true
-          max_response_buffer_size: 8192
+          max_response_buffer_size: 24576
           on_response:
             - lambda: |-
                 if (response->status_code != 200 || body.empty()) return;
-                vvo::render(body, id(lbl_hbfn), id(ha_time), 12);
+                static const vvo::Allow hbfn[] = {
+                  {"11", "Bühlau"}, {"7", "Weixdorf"}};
+                vvo::render(body, id(lbl_hbfn), id(ha_time), 12, hbfn, 2);
 
   # Header-Uhr (lokale ha_time) im Minutentakt aktualisiert
   - interval: 10s
