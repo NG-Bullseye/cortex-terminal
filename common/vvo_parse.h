@@ -45,6 +45,23 @@ inline bool sbahn_southbound(const std::string &dir) {
   return false;
 }
 
+// Display-Breite in MONOSPACE-Zellen = Anzahl UTF-8-Codepoints (Umlaut ü/ä/ö/ß
+// ist 2 Bytes aber 1 Zelle). Byte-basiertes %-Ns verschob sonst die Spalte.
+inline int disp_len(const std::string &s) {
+  int n = 0;
+  for (unsigned char c : s) if ((c & 0xC0) != 0x80) n++;
+  return n;
+}
+
+// Auf max. n Codepoints kuerzen (schneidet nie mitten in ein UTF-8-Zeichen).
+inline std::string trunc_disp(const std::string &s, int n) {
+  int cp = 0; size_t i = 0;
+  for (; i < s.size() && cp < n; i++) if ((s[i] & 0xC0) != 0x80) cp++;
+  // i steht jetzt am ersten Byte nach n Codepoints (Continuation-Bytes mitnehmen)
+  while (i < s.size() && (s[i] & 0xC0) == 0x80) i++;
+  return s.substr(0, i);
+}
+
 // Body parsen, bis zu `max_rows` Zeilen "LINIE  ZIEL  N'" ins Label setzen.
 inline void render(const std::string &body, lv_obj_t *label,
                    esphome::time::RealTimeClock *clk, int max_rows) {
@@ -93,11 +110,26 @@ inline void render(const std::string &body, lv_obj_t *label,
       int mins = (now_s > 0 && ms > 0) ? (int) (ms / 1000 - now_s) / 60 : 0;
       if (mins < 0) mins = 0;
 
-      // Schmal fuer Zwei-Spalten-Layout (je ~150px): Linie, gekuerztes Ziel, Min.
-      char row[32];
-      snprintf(row, sizeof(row), "%-3.3s%-9.9s%2d'", line.c_str(), dir.c_str(), mins);
+      // Zeile = "LINIE ZIEL ........ MM'" mit RECHTSBUENDIGER Minutenzahl.
+      // Monospace-Spaltenbreite W; Padding ueber disp_len (Codepoints, nicht
+      // Bytes) damit Umlaute die Ausrichtung nicht zerschieben.
+      const int W = 20;
+      char minbuf[8];
+      snprintf(minbuf, sizeof(minbuf), "%d'", mins);
+      int rl = disp_len(minbuf);
+
+      std::string lpad = trunc_disp(line, 3);
+      while (disp_len(lpad) < 3) lpad += " ";       // Linie auf 3 Zellen
+      std::string left = lpad + " " + dir;          // + Ziel
+      int maxleft = W - rl - 1;                      // min. 1 Zelle Abstand
+      if (disp_len(left) > maxleft) left = trunc_disp(left, maxleft);
+      int gap = W - disp_len(left) - rl;
+      if (gap < 1) gap = 1;
+
       if (!out.empty()) out += "\n";
-      out += row;
+      out += left;
+      out.append(gap, ' ');
+      out += minbuf;
       rows++;
     }
   }
