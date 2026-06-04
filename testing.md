@@ -10,7 +10,7 @@ Belastbare Test-Schleife fuer dieses ESP-Geraet. **Software-Tests reichen nicht*
 | IP (statisch) | `192.168.1.240` |
 | MAC | `b0:cb:d8:da:b9:ec` |
 | Chip | ESP32 (CYD board, 240×320 TFT mit Touch) |
-| YAML | `cyd-panel.yaml` (in diesem Repo) |
+| YAML | `cortex-terminal.yaml` (in diesem Repo) |
 | api_key location | `secrets.yaml: api_key:` |
 | ota_password | `secrets.yaml: ota_password:` |
 | HA Integration entry_id | `01KM8CGFCPBJYSX5JT0S2PV1X6` (`/home/leona/homeassistant/_data/.storage/esphome.<entry_id>`) |
@@ -29,11 +29,11 @@ Belastbare Test-Schleife fuer dieses ESP-Geraet. **Software-Tests reichen nicht*
 1. **YAML editieren** in diesem Repo.
 2. **OTA-Flash**:
    ```bash
-   esphome run cyd-panel.yaml --device 192.168.1.240
+   esphome run cortex-terminal.yaml --device 192.168.1.240
    ```
 3. **Remote-Logs**:
    ```bash
-   esphome logs cyd-panel.yaml --device 192.168.1.240
+   esphome logs cortex-terminal.yaml --device 192.168.1.240
    ```
 4. **End-to-End-Trigger**: je nach Funktion — Touch-Press am Panel ODER HTTP-Endpoint manuell aufrufen, der vom Panel verbraucht wird (siehe `BUTTONS.md`, `NEW_BUTTON_WORKFLOW.md`).
 5. **HITL (G8): Leo bestaetigt** dass UI/Touch/HA-Reaktion real wie erwartet ist.
@@ -44,7 +44,7 @@ Belastbare Test-Schleife fuer dieses ESP-Geraet. **Software-Tests reichen nicht*
 # CYD per USB anschliessen, /dev/ttyUSBN ermitteln:
 ls -la /dev/ttyUSB*
 
-esphome run cyd-panel.yaml --device /dev/ttyUSB0
+esphome run cortex-terminal.yaml --device /dev/ttyUSB0
 ```
 
 ## Diagnose: HA-Entity `unavailable`
@@ -57,7 +57,7 @@ ping -c 2 192.168.1.240
 timeout 2 bash -c 'cat < /dev/tcp/192.168.1.240/6053'  # exit 124 = port offen, hangt auf Protobuf (normal)
 
 # 3. Verbindet `esphome logs` mit current secrets.yaml?
-esphome logs cyd-panel.yaml --device 192.168.1.240
+esphome logs cortex-terminal.yaml --device 192.168.1.240
 #  → "Successful handshake" = ESP hat den Key aus diesem Repo
 #  → Auth fail = ESP hat anderen Key
 

@@ -7,10 +7,13 @@ ESP32 + CYD-Display (Cheap Yellow Display, 240×320 Touch) als Hardware-Frontend
 [CYD Touch] ─on_release─▶ [HA-Service / HTTP] ─▶ Cortex / HA / chat-service
 ```
 
-## Hardware
+## Multidisplay (EIN DISPLAY = EIN DEVICE-FILE)
+Geteilte Plattform in `common/` (`hardware.yaml` + `ui_base.yaml`), pro Display eine duenne Root-YAML. Registry: `displays.yaml` (NAME→IP). Aktuell: `cortex-terminal.yaml` (Hostname `cyd-panel`, `.240`, voller UI) und `cortex-vvo.yaml` (`cortex-vvo`, `.241`, CTRL2-Spiegel). Neues Display → README § „Display hinzufuegen". Firmware-`name`/Hostname ist flash-fix + HA-gepairt → nie umbenennen.
+
+## Hardware (alle CYD identisch — in `common/hardware.yaml`)
 - **Chip:** ESP32 (`esp32dev`, ESPHome + LVGL)
-- **Hostname:** `cyd-panel`
-- **IP:** `192.168.1.240` (statisch)
+- **Haupt-Panel-Hostname:** `cyd-panel`
+- **Haupt-Panel-IP:** `192.168.1.240` (statisch)
 - **Display:** ILI9341 240×320, Touch XPT2046
 
 ## Services (was das Geraet exponiert + nutzt)
@@ -36,16 +39,16 @@ ESP32 + CYD-Display (Cheap Yellow Display, 240×320 Touch) als Hardware-Frontend
 
 ```bash
 cd ~/esp_repos/cortex-terminal
-esphome compile cyd-panel.yaml                       # ~150s (PSRAM + LVGL)
-esphome upload  cyd-panel.yaml --device 192.168.1.240 # ~6s OTA
+esphome compile cortex-terminal.yaml                       # ~150s (PSRAM + LVGL)
+esphome upload  cortex-terminal.yaml --device 192.168.1.240 # ~6s OTA
 ping -c 1 192.168.1.240                              # verify back online
 ```
 
 **Wichtig — Gotchas:**
-- **mDNS funktioniert hier NICHT.** `--device cortex-terminal.local` / `cyd-panel.local` schlaegt mit „Error resolving IP" fehl. Immer die statische IP `192.168.1.240` nutzen (aus `cyd-panel.yaml` → `wifi.manual_ip.static_ip`).
+- **mDNS funktioniert hier NICHT.** `--device cortex-terminal.local` / `cyd-panel.local` schlaegt mit „Error resolving IP" fehl. Immer die statische IP `192.168.1.240` nutzen (aus `cortex-terminal.yaml` → `wifi.manual_ip.static_ip`).
 - **Compile + Upload getrennt halten** statt `esphome run`. Compile ist teuer (~150s), Upload billig (~6s). Bei iterativem Testing: einmal kompilieren, mehrfach uploaden.
 - **HA wirft OTA-Warnings**: `Cortex Terminal: esphome.ota set Warning flag: unspecified` waehrend Flash, `cleared Warning flag` danach. Normal, ignorieren.
-- **Statische IP-Quelle:** `grep -E "static_ip|use_address" cyd-panel.yaml` falls die IP mal wechselt.
+- **Statische IP-Quelle:** `grep -E "static_ip|use_address" cortex-terminal.yaml` falls die IP mal wechselt.
 - **Pre-Flash-Reachability-Check:** `ping -c 2 -W 2 192.168.1.240` — wenn der nicht antwortet, Flash NICHT versuchen (Geraet offline / im Boot-Loop). Erst Hardware checken.
 
 Workflow fuer neue Buttons: `NEW_BUTTON_WORKFLOW.md`.
@@ -53,7 +56,7 @@ Workflow fuer neue Buttons: `NEW_BUTTON_WORKFLOW.md`.
 ## Button-Scaffolder
 
 Spec-driven Button-Generierung. Eine YAML-Spec → vier framed Code-Bloecke an
-stdout, die Leo (oder ein dummer LLM) in `cyd-panel.yaml` + `~/cortex/main.py`
+stdout, die Leo (oder ein dummer LLM) in `cortex-terminal.yaml` + `~/cortex/main.py`
 einpaste-t. Jeder Button = 1 POST-Endpoint (+ optional 1 GET-State-Endpoint).
 Direct-to-Cortex, kein HA-Detour.
 
@@ -83,7 +86,7 @@ Slot 3 Blackout-Button.
 7. `testing.md` — Test-Verfahren
 
 ## Ground Truth
-**Leo.** Real-Beobachtung schlaegt Code-Stand. cyd-panel.yaml im Repo kann hinter dem Live-Geraet zurueck sein.
+**Leo.** Real-Beobachtung schlaegt Code-Stand. cortex-terminal.yaml im Repo kann hinter dem Live-Geraet zurueck sein.
 
 ## Selbstbild — kanonisch in `~/cortex/CLAUDE.md`
 Mein Wesen (Identitaet, Kommunikation, Task-System mit Markern ❌/❗/👁, Live-Lage) wird **dort** gewartet — diese Datei nur fuer dieses Repo. Beim Wechsel: `~/cortex/CLAUDE.md` zuerst, dann hier.

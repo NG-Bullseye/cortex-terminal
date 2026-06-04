@@ -6,6 +6,47 @@
 
 ---
 
+## Multidisplay-Architektur
+
+Dieses Repo betreibt **mehrere CYD-Displays**, jedes mit eigenem UI. Gemeinsame Plattform liegt in `common/`, jedes Display ist eine duenne Device-YAML im Repo-Root.
+
+```
+common/hardware.yaml   Chip, WiFi(${static_ip}), API/OTA, SPI/Display/Touch, Outputs, Sensoren
+common/ui_base.yaml    Fonts + LVGL-Basis + Style-Definitionen
+cortex-terminal.yaml   Display: Haupt-Panel  (Hostname cyd-panel, .240) — voller UI
+cortex-vvo.yaml        Display: Zweitdisplay (Hostname cortex-vvo, .241) — CTRL2-Spiegel
+displays.yaml          Registry: NAME -> IP -> Device-File
+```
+
+Ein Device-File = `substitutions` (device_name/static_ip) + `packages:` (zieht common) + eigene `lvgl.pages` (+ optional Globals/Intervals/text_sensors). Die Plattform-Boilerplate steht nur einmal in `common/`.
+
+**Identitaet:** Der Firmware-`name` ist zugleich der Hostname und wird beim Initial-Flash fix vergeben + in HA gepairt → **nie umbenennen**. Darum heisst das Haupt-Panel firmware-seitig weiter `cyd-panel`, obwohl die Device-Datei `cortex-terminal.yaml` heisst.
+
+### Display hinzufuegen
+
+1. **Freie IP** gegen `~/cortex/docs/network-devices.md` pruefen, dort eintragen.
+2. **`displays.yaml`** um einen Eintrag (name → file/hostname/ip/role) erweitern.
+3. **`<name>.yaml`** im Root anlegen:
+   ```yaml
+   substitutions:
+     device_name: <hostname>      # == displays.yaml
+     static_ip: 192.168.1.<x>     # == displays.yaml
+   esphome:
+     name: ${device_name}
+     friendly_name: "<Anzeigename>"
+   packages:
+     hardware: !include common/hardware.yaml
+     ui_base: !include common/ui_base.yaml
+   lvgl:
+     pages:
+       - id: page_main
+         widgets: [ ... ]         # eigenes UI
+   ```
+4. **Compile-Check** (kein Flash): `esphome compile <name>.yaml`.
+5. **Initial-Flash** (einmalig per USB, vergibt IP + paired HA): `esphome run <name>.yaml --device /dev/ttyUSB0`, danach OTA via `--device <ip>`. **Idiotensichere Schritt-fuer-Schritt-Anleitung inkl. Preflight-Helper (`tools/initial_flash.sh`) und Troubleshooting → `INITIAL_FLASH.md`.**
+
+---
+
 ## Hardware
 
 - **Chip:** ESP32 (`esp32dev`, Arduino-Framework via ESPHome)
@@ -16,7 +57,7 @@
 - **Touch:** XPT2046, SPI Bus 2
 - **Web-Server:** Port 80 (MCP-Endpoint)
 
-Pinout-Details: siehe `cyd-panel.yaml` Sektion „SPI Buses" + Display/Touch-Configs. CYD-Boards haben fixed Pinout — nicht aendern ohne Hardware-Doku.
+Pinout-Details: siehe `cortex-terminal.yaml` Sektion „SPI Buses" + Display/Touch-Configs. CYD-Boards haben fixed Pinout — nicht aendern ohne Hardware-Doku.
 
 ---
 
@@ -54,10 +95,10 @@ zurueck zum Panel via Push (HTTP)
 cd ~/esp_repos/cortex-terminal
 
 # YAML-Aenderung
-$EDITOR cyd-panel.yaml
+$EDITOR cortex-terminal.yaml
 
 # OTA-Flash + Live-Log
-esphome run cyd-panel.yaml --device 192.168.1.240
+esphome run cortex-terminal.yaml --device 192.168.1.240
 ```
 
 ---
@@ -72,7 +113,7 @@ esphome run cyd-panel.yaml --device 192.168.1.240
    api_key:      "<base64 32-byte key>"
    ota_password: "<your-ota-password>"
    ```
-   WiFi-Credentials werden hier ueber Env-Vars `ESPHOME_WIFI_SSID` / `ESPHOME_WIFI_PASSWORD` gezogen (siehe `cyd-panel.yaml`) — die muessen vor `esphome run` exportiert sein:
+   WiFi-Credentials werden hier ueber Env-Vars `ESPHOME_WIFI_SSID` / `ESPHOME_WIFI_PASSWORD` gezogen (siehe `cortex-terminal.yaml`) — die muessen vor `esphome run` exportiert sein:
    ```bash
    export ESPHOME_WIFI_SSID="..."
    export ESPHOME_WIFI_PASSWORD="..."
@@ -81,13 +122,13 @@ esphome run cyd-panel.yaml --device 192.168.1.240
 
 ### Deploy-Schritt 1 — YAML-Aenderung
 
-YAML editieren in `cyd-panel.yaml`. Touch-Layouts und HTTP-Calls sind in den Kommentaren markiert (siehe `BUTTONS.md`, `NEW_BUTTON_WORKFLOW.md`).
+YAML editieren in `cortex-terminal.yaml`. Touch-Layouts und HTTP-Calls sind in den Kommentaren markiert (siehe `BUTTONS.md`, `NEW_BUTTON_WORKFLOW.md`).
 
 ### Deploy-Schritt 2 — OTA-Flash
 
 ```bash
 cd ~/esp_repos/cortex-terminal
-esphome run cyd-panel.yaml --device 192.168.1.240
+esphome run cortex-terminal.yaml --device 192.168.1.240
 ```
 
 Erwarteter Log:
@@ -127,7 +168,7 @@ Nur wenn OTA failed (api_key drift, Crash-Loop, etc.):
 
 ```bash
 ls -la /dev/ttyUSB*
-esphome run cyd-panel.yaml --device /dev/ttyUSB0
+esphome run cortex-terminal.yaml --device /dev/ttyUSB0
 ```
 
 USB-Flash setzt Geraet auf aktuellen `secrets.yaml api_key` zurueck. Anschliessend ggf. HA-Integration-Reload.
@@ -157,7 +198,7 @@ cp secrets.yaml secrets.yaml.bak-$(date +%F)
 # Aenderung
 $EDITOR secrets.yaml
 # Flash
-esphome run cyd-panel.yaml --device 192.168.1.240   # oder USB falls Key-Drift OTA blockiert
+esphome run cortex-terminal.yaml --device 192.168.1.240   # oder USB falls Key-Drift OTA blockiert
 # HA-Reload
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
      http://192.168.1.225:8123/api/config/config_entries/entry/01KM8CGFCPBJYSX5JT0S2PV1X6/reload
@@ -172,7 +213,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 ```bash
 ping -c 2 192.168.1.240                                      # Host alive?
 timeout 2 bash -c 'cat < /dev/tcp/192.168.1.240/6053'        # API port open? (exit 124 = ok)
-esphome logs cyd-panel.yaml --device 192.168.1.240           # Handshake?
+esphome logs cortex-terminal.yaml --device 192.168.1.240           # Handshake?
 grep noise_psk /home/leona/homeassistant/_data/.storage/core.config_entries | grep cyd-panel
 # Mismatch zu secrets.yaml api_key → key drift → Pfad: USB-Flash + HA-Reload
 ```
@@ -236,7 +277,12 @@ Siehe `testing.md` in diesem Repo. Pflicht-Run nach Aenderung:
 
 ## Referenzen
 
-- `cyd-panel.yaml` — die ESPHome-Konfiguration
+- `cortex-terminal.yaml` — Device-File Haupt-Panel (ESPHome-Konfiguration)
+- `cortex-vvo.yaml` — Device-File Zweitdisplay
+- `common/hardware.yaml`, `common/ui_base.yaml` — geteilte Plattform-Packages
+- `displays.yaml` — Display-Registry (NAME → IP)
+- `INITIAL_FLASH.md` — einmaliger USB-Erst-Flash (Port, statische IP, Verify, OTA-Umstieg)
+- `tools/initial_flash.sh` — Preflight-Gate + Auto-Port-Detection fuer den Initial-Flash
 - `BUTTONS.md` — Layout der Touch-Buttons
 - `NEW_BUTTON_WORKFLOW.md` — wie ein neuer Touch-Button hinzugefuegt wird
 - `secrets.yaml` (gitignored) — Credentials
