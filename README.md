@@ -43,7 +43,7 @@ Ein Device-File = `substitutions` (device_name/static_ip) + `packages:` (zieht c
          widgets: [ ... ]         # eigenes UI
    ```
 4. **Compile-Check** (kein Flash): `esphome compile <name>.yaml`.
-5. **Initial-Flash** (einmalig per USB, vergibt IP + paired HA): `esphome run <name>.yaml --device /dev/ttyUSB0`, danach OTA via `--device <ip>`.
+5. **Initial-Flash** (einmalig per USB, vergibt IP + paired HA): `esphome run <name>.yaml --device /dev/ttyUSB0`, danach OTA via `--device <ip>`. **Idiotensichere Schritt-fuer-Schritt-Anleitung inkl. Preflight-Helper (`tools/initial_flash.sh`) und Troubleshooting → `INITIAL_FLASH.md`.**
 
 ---
 
@@ -281,6 +281,8 @@ Siehe `testing.md` in diesem Repo. Pflicht-Run nach Aenderung:
 - `cortex-vvo.yaml` — Device-File Zweitdisplay
 - `common/hardware.yaml`, `common/ui_base.yaml` — geteilte Plattform-Packages
 - `displays.yaml` — Display-Registry (NAME → IP)
+- `INITIAL_FLASH.md` — einmaliger USB-Erst-Flash (Port, statische IP, Verify, OTA-Umstieg)
+- `tools/initial_flash.sh` — Preflight-Gate + Auto-Port-Detection fuer den Initial-Flash
 - `BUTTONS.md` — Layout der Touch-Buttons
 - `NEW_BUTTON_WORKFLOW.md` — wie ein neuer Touch-Button hinzugefuegt wird
 - `secrets.yaml` (gitignored) — Credentials
