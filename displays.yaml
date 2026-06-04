@@ -25,4 +25,4 @@ displays:
     file: cortex-vvo.yaml
     hostname: cortex-vvo
     ip: 192.168.1.241
-    role: "Zweitdisplay — spiegelt CTRL2-Page; VVO-Abfahrtsinhalt folgt Welle 3"
+    role: "Zweitdisplay — VVO-Abfahrtstafel (Hbf 33000028 + Hbf Nord 33000032), Tram + S-Bahn"
