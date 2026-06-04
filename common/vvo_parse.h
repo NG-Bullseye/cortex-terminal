@@ -113,7 +113,8 @@ inline void render(const std::string &body, lv_obj_t *label,
       long long ms = date_ms(obj, "RealTime");
       if (ms == 0) ms = date_ms(obj, "ScheduledTime");
       int mins = (now_s > 0 && ms > 0) ? (int) (ms / 1000 - now_s) / 60 : 0;
-      if (mins < 0) mins = 0;
+      // Nicht mehr erreichbar (≤3 min) gar nicht erst anzeigen.
+      if (mins <= 3) continue;
 
       // Zeile = "LINIE ZIEL ........ MM'" mit RECHTSBUENDIGER Minutenzahl.
       // Monospace-Spaltenbreite W; Padding ueber disp_len (Codepoints, nicht
