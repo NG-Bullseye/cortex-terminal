@@ -24,6 +24,10 @@ wifi:
     static_ip: ${static_ip}
     gateway: 192.168.1.1
     subnet: 255.255.255.0
+    # PFLICHT bei manual_ip: ohne dns1 bleibt DNS1=0.0.0.0 → getaddrinfo()
+    # scheitert, jede Hostname-Abfrage (z.B. VVO-API) stirbt mit ESP_ERR_HTTP_CONNECT.
+    dns1: 192.168.1.1        # Router
+    dns2: 1.1.1.1            # Fallback (Cloudflare)
 
 api:
   encryption:
