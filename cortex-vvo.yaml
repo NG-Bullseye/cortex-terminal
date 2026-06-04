@@ -52,7 +52,7 @@ interval:
           on_response:
             - lambda: |-
                 if (response->status_code != 200 || body.empty()) return;
-                vvo::render(body, id(lbl_hbf), id(ha_time), 5);
+                vvo::render(body, id(lbl_hbf), id(ha_time), 7);
 
   - interval: 30s
     then:
@@ -66,7 +66,7 @@ interval:
           on_response:
             - lambda: |-
                 if (response->status_code != 200 || body.empty()) return;
-                vvo::render(body, id(lbl_hbfn), id(ha_time), 5);
+                vvo::render(body, id(lbl_hbfn), id(ha_time), 7);
 
   # Header-Uhr (lokale ha_time) im Minutentakt aktualisiert
   - interval: 10s
@@ -79,23 +79,26 @@ interval:
           lv_label_set_text(id(lbl_clock), buf);
 
 # ── LVGL Pages (ergaenzt common/ui_base.yaml lvgl-Basis) ───────────────
-# Single-Page-Abfahrtstafel: Header + zwei Stop-Panels (je 5 Zeilen).
+# Vertikaler Split: zwei Spalten ueber die volle Display-Hoehe.
+#   LINKS  = Hauptbahnhof Nord (lbl_hbfn)
+#   RECHTS = Hauptbahnhof       (lbl_hbf)
+# Header-Leiste oben quer (Titel + Uhr), darunter die beiden Spalten 0..240.
 lvgl:
   pages:
     - id: page_vvo
       bg_color: 0x0a0a1a
       widgets:
-        # ── Header: Titel links, Uhr rechts ──
+        # ── Header quer: Titel links, Uhr rechts ──
         - obj:
             styles: style_header
             width: 320
-            height: 26
+            height: 24
             x: 0
             y: 0
             pad_all: 0
             widgets:
               - label:
-                  text: "VVO // DRESDEN"
+                  text: "VVO // DD"
                   text_font: font_mono_16
                   text_color: 0x00ccff
                   align: LEFT_MID
@@ -108,45 +111,55 @@ lvgl:
                   align: RIGHT_MID
                   x: -6
 
-        # ── Stop A: Hauptbahnhof ──
+        # ── Senkrechter Trenner mittig ──
+        - obj:
+            width: 2
+            height: 212
+            x: 159
+            y: 26
+            bg_color: 0x1a3a5a
+            border_width: 0
+            radius: 0
+
+        # ── LINKE Spalte: Hauptbahnhof Nord ──
         - label:
-            text: "HAUPTBAHNHOF"
+            text: "HBF NORD"
             text_font: font_mono_12
             text_color: 0x00ccff
-            x: 8
-            y: 30
+            x: 6
+            y: 28
         - obj:
             styles: style_feed
-            width: 312
-            height: 84
-            x: 4
-            y: 46
-            pad_all: 4
+            width: 152
+            height: 192
+            x: 2
+            y: 44
+            pad_all: 3
             widgets:
               - label:
-                  id: lbl_hbf
+                  id: lbl_hbfn
                   text: "-- lade --"
                   text_font: font_mono_12
                   text_color: 0x00ff88
                   align: TOP_LEFT
 
-        # ── Stop B: Hauptbahnhof Nord ──
+        # ── RECHTE Spalte: Hauptbahnhof ──
         - label:
-            text: "HAUPTBAHNHOF NORD"
+            text: "HAUPTBAHNHOF"
             text_font: font_mono_12
             text_color: 0x00ccff
-            x: 8
-            y: 136
+            x: 166
+            y: 28
         - obj:
             styles: style_feed
-            width: 312
-            height: 84
-            x: 4
-            y: 152
-            pad_all: 4
+            width: 152
+            height: 192
+            x: 164
+            y: 44
+            pad_all: 3
             widgets:
               - label:
-                  id: lbl_hbfn
+                  id: lbl_hbf
                   text: "-- lade --"
                   text_font: font_mono_12
                   text_color: 0x00ff88

@@ -10,6 +10,7 @@
 #include <string>
 #include <cstdio>
 #include "esphome/components/time/real_time_clock.h"
+#include "esphome/core/log.h"
 
 namespace vvo {
 
@@ -51,17 +52,35 @@ inline void render(const std::string &body, lv_obj_t *label,
   long long now_s = now.is_valid() ? (long long) now.timestamp : 0;
 
   std::string out;
+  int rows = 0;
   size_t arr = body.find("\"Departures\":");
   if (arr != std::string::npos) {
-    size_t cursor = body.find('[', arr);
-    int rows = 0;
-    while (cursor != std::string::npos && rows < max_rows) {
-      size_t os = body.find('{', cursor);
-      if (os == std::string::npos) break;
-      size_t oe = body.find('}', os);
-      if (oe == std::string::npos) break;
-      std::string obj = body.substr(os, oe - os + 1);
-      cursor = oe + 1;
+    size_t i = body.find('[', arr);
+    while (i != std::string::npos && rows < max_rows) {
+      // Nächstes Top-Level-Objekt im Array; ']' = Array-Ende.
+      while (i < body.size() && body[i] != '{' && body[i] != ']') i++;
+      if (i >= body.size() || body[i] == ']') break;
+
+      // Klammer-Matching: das schliessende '}' DIESES Departures finden und
+      // verschachtelte Platform{}/Diva{} mitzaehlen. Naives find('}') brach
+      // sonst am Ende von "Platform":{...} ab → Mot/RealTime lagen dahinter
+      // und wurden nie gelesen (ms=0 → keine Zeit). Strings inkl. Escapes
+      // ("\/Date(...)\/") werden uebersprungen.
+      size_t start = i;
+      int depth = 0;
+      bool in_str = false;
+      for (; i < body.size(); i++) {
+        char c = body[i];
+        if (in_str) {
+          if (c == '\\') { i++; continue; }
+          if (c == '"') in_str = false;
+          continue;
+        }
+        if (c == '"') in_str = true;
+        else if (c == '{') depth++;
+        else if (c == '}') { if (--depth == 0) { i++; break; } }
+      }
+      std::string obj = body.substr(start, i - start);
 
       std::string line = str_field(obj, "LineName");
       std::string dir  = str_field(obj, "Direction");
@@ -74,14 +93,16 @@ inline void render(const std::string &body, lv_obj_t *label,
       int mins = (now_s > 0 && ms > 0) ? (int) (ms / 1000 - now_s) / 60 : 0;
       if (mins < 0) mins = 0;
 
-      char row[40];
-      snprintf(row, sizeof(row), "%-3.3s %-12.12s %2d'", line.c_str(), dir.c_str(), mins);
+      // Schmal fuer Zwei-Spalten-Layout (je ~150px): Linie, gekuerztes Ziel, Min.
+      char row[32];
+      snprintf(row, sizeof(row), "%-3.3s%-9.9s%2d'", line.c_str(), dir.c_str(), mins);
       if (!out.empty()) out += "\n";
       out += row;
       rows++;
     }
   }
   if (out.empty()) out = "-- keine Daten --";
+  ESP_LOGD("vvo", "render %d rows, now_s=%lld:\n%s", rows, now_s, out.c_str());
   lv_label_set_text(label, out.c_str());
 }
 
