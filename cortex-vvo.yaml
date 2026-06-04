@@ -31,10 +31,24 @@ packages:
   hardware: !include common/hardware.yaml
   ui_base: !include common/ui_base.yaml
 
-# ── Zeitbasis fuer Countdown-Berechnung ───────────────────────────────
+# ── Zeitbasis fuer Countdown-Berechnung + Display-Schaltzeiten ─────────
+# Terminal 2 (cortex-vvo): unter der Woche 23:00 Backlight AUS, 06:00 AN.
 time:
   - platform: homeassistant
     id: ha_time
+    on_time:
+      - hours: 23
+        minutes: 0
+        seconds: 0
+        days_of_week: [MON, TUE, WED, THU, FRI]
+        then:
+          - switch.turn_off: backlight
+      - hours: 6
+        minutes: 0
+        seconds: 0
+        days_of_week: [MON, TUE, WED, THU, FRI]
+        then:
+          - switch.turn_on: backlight
 
 # ── VVO-Poll: ein Interval pro Haltestelle ────────────────────────────
 # Beide rufen denselben DepartureMonitor mit ihrer stopid auf; vvo::render
