@@ -1,10 +1,20 @@
 # ════════════════════════════════════════════════════════════════════
-# DISPLAY: cortex-vvo  (Zweitdisplay)
+# DISPLAY: cortex-vvo  (Zweitdisplay) — VVO-Abfahrtstafel (Welle 3)
 # ────────────────────────────────────────────────────────────────────
 # Logischer Name + Firmware-Hostname: cortex-vvo · IP: 192.168.1.241
-# (siehe displays.yaml). Spiegelt vorerst die CTRL2-Page (Switch-Toggles)
-# als Geruest — der eigentliche VVO-API-Inhalt (Abfahrten) kommt in
-# Welle 3. Plattform/Hardware aus common/, hier nur Identitaet + UI.
+# (siehe displays.yaml). Plattform/Hardware aus common/.
+#
+# Zeigt Dresdner VVO-Abfahrten fuer ZWEI Haltestellen:
+#   • Dresden Hauptbahnhof       stopid 33000028
+#   • Dresden Hauptbahnhof Nord  stopid 33000032
+# Gefiltert auf Tram + S-Bahn (SuburbanRailway), keine Busse; S-Bahn
+# nur Richtung Neustadt (suedwaerts gehende Endpunkte werden verworfen).
+#
+# Datenquelle: VVO DepartureMonitor (POST https://webapi.vvo-online.de/dm).
+# Der ESP pollt direkt (HTTPS) — kein Cortex-Proxy noetig, da hier nur
+# Format-Parsing (kein State/Resolver) anfaellt: A→C statt A→B→C. Die
+# Antwort liefert Zeiten im Microsoft-JSON-Format "/Date(ms+tz)/"; der
+# Countdown wird in common/vvo_parse.h gegen ha_time gerechnet.
 # ════════════════════════════════════════════════════════════════════
 
 substitutions:
@@ -14,146 +24,130 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: "Cortex VVO"
+  includes:
+    - common/vvo_parse.h
 
 packages:
   hardware: !include common/hardware.yaml
   ui_base: !include common/ui_base.yaml
 
+# ── Zeitbasis fuer Countdown-Berechnung ───────────────────────────────
+time:
+  - platform: homeassistant
+    id: ha_time
+
+# ── VVO-Poll: ein Interval pro Haltestelle ────────────────────────────
+# Beide rufen denselben DepartureMonitor mit ihrer stopid auf; vvo::render
+# parst den Body und schreibt die Zeilen ins jeweilige Panel-Label.
+# Versetzt (Nord +15s) damit nie zwei TLS-Reads kollidieren.
+interval:
+  - interval: 30s
+    then:
+      - http_request.post:
+          url: "https://webapi.vvo-online.de/dm?format=json"
+          request_headers: { Content-Type: "application/json" }
+          body: '{"stopid":"33000028","limit":7,"mot":["Tram","SuburbanRailway"],"format":"json"}'
+          capture_response: true
+          max_response_buffer_size: 8192
+          on_response:
+            - lambda: |-
+                if (response->status_code != 200 || body.empty()) return;
+                vvo::render(body, id(lbl_hbf), id(ha_time), 5);
+
+  - interval: 30s
+    then:
+      - delay: 15s
+      - http_request.post:
+          url: "https://webapi.vvo-online.de/dm?format=json"
+          request_headers: { Content-Type: "application/json" }
+          body: '{"stopid":"33000032","limit":7,"mot":["Tram","SuburbanRailway"],"format":"json"}'
+          capture_response: true
+          max_response_buffer_size: 8192
+          on_response:
+            - lambda: |-
+                if (response->status_code != 200 || body.empty()) return;
+                vvo::render(body, id(lbl_hbfn), id(ha_time), 5);
+
+  # Header-Uhr (lokale ha_time) im Minutentakt aktualisiert
+  - interval: 10s
+    then:
+      - lambda: |-
+          auto now = id(ha_time).now();
+          if (!now.is_valid()) return;
+          char buf[6];
+          snprintf(buf, sizeof(buf), "%02d:%02d", now.hour, now.minute);
+          lv_label_set_text(id(lbl_clock), buf);
+
 # ── LVGL Pages (ergaenzt common/ui_base.yaml lvgl-Basis) ───────────────
-# Single-Page-Spiegel der CTRL2-Switches. Keine Nav-Bar (nur eine Page).
-# In Welle 3 wird der Inhalt durch die VVO-Abfahrtstafel ersetzt.
+# Single-Page-Abfahrtstafel: Header + zwei Stop-Panels (je 5 Zeilen).
 lvgl:
   pages:
-    - id: page_ctrl2
+    - id: page_vvo
       bg_color: 0x0a0a1a
       widgets:
+        # ── Header: Titel links, Uhr rechts ──
         - obj:
             styles: style_header
             width: 320
-            height: 28
+            height: 26
             x: 0
             y: 0
-            widgets:
-              - label: { text: "VVO // CTRL2 MIRROR", text_font: font_mono_16, text_color: 0x00ccff, align: CENTER }
-
-        # 3x3 Toggle-Grid — alle homeassistant.action switch.toggle / light.toggle
-        - obj:
-            width: 310
-            height: 144
-            x: 5
-            y: 30
-            bg_opa: TRANSP
-            border_width: 0
             pad_all: 0
-            layout:
-              type: FLEX
-              flex_flow: ROW_WRAP
-              flex_align_main: SPACE_EVENLY
-              flex_align_cross: START
-              pad_column: 6
-              pad_row: 6
-            widgets:
-              - button:
-                  styles: style_btn
-                  pressed: { styles: style_btn_pressed }
-                  width: 99
-                  height: 44
-                  widgets:
-                    - label: { text: "PFLANZE", text_font: font_mono_12, align: CENTER }
-                  on_release:
-                    - homeassistant.action: { action: switch.toggle, data: { entity_id: switch.pflanzenlampe } }
-
-              - button:
-                  styles: style_btn
-                  pressed: { styles: style_btn_pressed }
-                  width: 99
-                  height: 44
-                  widgets:
-                    - label: { text: "KERZE", text_font: font_mono_12, align: CENTER }
-                  on_release:
-                    - homeassistant.action: { action: switch.toggle, data: { entity_id: switch.kerze } }
-
-              - button:
-                  styles: style_btn
-                  pressed: { styles: style_btn_pressed }
-                  width: 99
-                  height: 44
-                  widgets:
-                    - label: { text: "PC-STR", text_font: font_mono_12, align: CENTER }
-                  on_release:
-                    - homeassistant.action: { action: switch.toggle, data: { entity_id: switch.pc_strahler } }
-
-              - button:
-                  styles: style_btn
-                  pressed: { styles: style_btn_pressed }
-                  width: 99
-                  height: 44
-                  widgets:
-                    - label: { text: "BEAM-SND", text_font: font_mono_12, align: CENTER }
-                  on_release:
-                    - homeassistant.action: { action: switch.toggle, data: { entity_id: switch.beamer_sound } }
-
-              - button:
-                  styles: style_btn
-                  pressed: { styles: style_btn_pressed }
-                  width: 99
-                  height: 44
-                  widgets:
-                    - label: { text: "BEAM-PWR", text_font: font_mono_12, align: CENTER }
-                  on_release:
-                    - homeassistant.action: { action: switch.toggle, data: { entity_id: switch.beamer_power } }
-
-              - button:
-                  styles: style_btn
-                  pressed: { styles: style_btn_pressed }
-                  width: 99
-                  height: 44
-                  widgets:
-                    - label: { text: "FIRETV-P", text_font: font_mono_12, align: CENTER }
-                  on_release:
-                    - homeassistant.action: { action: switch.toggle, data: { entity_id: switch.fire_tv_smartsocket } }
-
-              - button:
-                  styles: style_btn
-                  pressed: { styles: style_btn_pressed }
-                  width: 99
-                  height: 44
-                  widgets:
-                    - label: { text: "HELIX", text_font: font_mono_12, align: CENTER }
-                  on_release:
-                    - homeassistant.action: { action: light.toggle, data: { entity_id: light.helix } }
-
-              - button:
-                  styles: style_btn
-                  pressed: { styles: style_btn_pressed }
-                  width: 99
-                  height: 44
-                  widgets:
-                    - label: { text: "KAKTUS", text_font: font_mono_12, align: CENTER }
-                  on_release:
-                    - homeassistant.action: { action: light.toggle, data: { entity_id: light.kaktus } }
-
-              - button:
-                  styles: style_btn
-                  pressed: { styles: style_btn_pressed }
-                  width: 99
-                  height: 44
-                  widgets:
-                    - label: { text: "LEDS", text_font: font_mono_12, align: CENTER }
-                  on_release:
-                    - homeassistant.action: { action: switch.toggle, data: { entity_id: switch.strahler_oben } }
-
-        # Footer-Hinweis (Platzhalter bis VVO-Inhalt in Welle 3)
-        - obj:
-            styles: style_feed
-            width: 310
-            height: 38
-            x: 5
-            y: 184
             widgets:
               - label:
-                  text: "VVO-Abfahrten folgen (Welle 3)"
-                  text_font: font_mono_12
-                  text_color: 0x446688
+                  text: "VVO // DRESDEN"
+                  text_font: font_mono_16
+                  text_color: 0x00ccff
                   align: LEFT_MID
-                  x: 4
+                  x: 6
+              - label:
+                  id: lbl_clock
+                  text: "--:--"
+                  text_font: font_mono_16
+                  text_color: 0x00ff88
+                  align: RIGHT_MID
+                  x: -6
+
+        # ── Stop A: Hauptbahnhof ──
+        - label:
+            text: "HAUPTBAHNHOF"
+            text_font: font_mono_12
+            text_color: 0x00ccff
+            x: 8
+            y: 30
+        - obj:
+            styles: style_feed
+            width: 312
+            height: 84
+            x: 4
+            y: 46
+            pad_all: 4
+            widgets:
+              - label:
+                  id: lbl_hbf
+                  text: "-- lade --"
+                  text_font: font_mono_12
+                  text_color: 0x00ff88
+                  align: TOP_LEFT
+
+        # ── Stop B: Hauptbahnhof Nord ──
+        - label:
+            text: "HAUPTBAHNHOF NORD"
+            text_font: font_mono_12
+            text_color: 0x00ccff
+            x: 8
+            y: 136
+        - obj:
+            styles: style_feed
+            width: 312
+            height: 84
+            x: 4
+            y: 152
+            pad_all: 4
+            widgets:
+              - label:
+                  id: lbl_hbfn
+                  text: "-- lade --"
+                  text_font: font_mono_12
+                  text_color: 0x00ff88
+                  align: TOP_LEFT
