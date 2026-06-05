@@ -17,7 +17,7 @@
 displays:
   cortex-terminal:
     file: cortex-terminal.yaml
-    hostname: cyd-panel            # Firmware-name (HA-gepairt, NICHT umbenennen)
+    hostname: cortex-terminal      # Firmware-name (HA by-IP/MAC, frei umbenennbar)
     ip: 192.168.1.240
     role: "Haupt-Panel am PC-Tisch — voller UI (CTRL / CTRL2 / FEED / AUDIO / DEV)"
 

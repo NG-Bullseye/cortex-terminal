@@ -1,13 +1,14 @@
 # ════════════════════════════════════════════════════════════════════
-# DISPLAY: cortex-terminal  ("Nabu Terminal", PC-Tisch)
+# DISPLAY: cortex-terminal  (PC-Tisch)
 # ────────────────────────────────────────────────────────────────────
-# Logischer Name: cortex-terminal · Firmware-Hostname: cyd-panel (HA-gepairt,
-# flash-fix — NICHT umbenennen) · IP: 192.168.1.240 (siehe displays.yaml).
+# Firmware-Hostname: cortex-terminal · IP: 192.168.1.240 (siehe displays.yaml).
+# HA spricht das Device per fester IP + MAC an (config_entry by-MAC), nicht
+# per mDNS — der Hostname ist daher frei umbenennbar (nabu→cortex-Closure).
 # Diese Datei = Identitaet + UI. Plattform/Hardware kommt aus common/.
 # ════════════════════════════════════════════════════════════════════
 
 substitutions:
-  device_name: cyd-panel          # Firmware-Hostname (muss displays.yaml entsprechen)
+  device_name: cortex-terminal    # Firmware-Hostname (muss displays.yaml entsprechen)
   static_ip: 192.168.1.240        # flash-fix (muss displays.yaml entsprechen)
 
 esphome:
@@ -60,7 +61,7 @@ globals:
 # Cortex Kommunikationskanal: HA/MCP setzt diesen Text
 text_sensor:
   - platform: template
-    name: "Nabu Message"
+    name: "Cortex Message"
     id: nabu_message
     update_interval: never
     lambda: 'return {"SYSTEMS NOMINAL"};'
