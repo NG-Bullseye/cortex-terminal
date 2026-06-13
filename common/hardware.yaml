@@ -41,11 +41,19 @@ ota:
 web_server:
   port: 80
 
-# ── HTTP Request (HA API calls) ─────────────────────────
+# ── HTTP Request (HA API calls + VVO-HTTPS) ─────────────
+# buffer_size_rx: Default ist 512 B. Beim VVO-Poll (HTTPS, ~14 KB chunked
+# Body) zwingt 512 B mbedTLS zu hunderten Mini-Socket-Reads pro Antwort;
+# unter LVGL-Last lief dabei der per-Socket-Timeout aus → esp-tls
+# "select() timeout" → ESP_ERR_HTTP_CONNECT, Abfahrten blieben leer.
+# 4 KB Read-Buffer = wenige TLS-Records statt 512-B-Häppchen.
+# timeout: 3 s war zu knapp für den TLS-Handshake unter Last (Host macht
+# denselben Request in 0,1 s, der geladene ESP braucht mehr Wall-Clock).
 http_request:
   id: http_request_component
   useragent: esphome/${device_name}
-  timeout: 3s
+  timeout: 10s
+  buffer_size_rx: 4096
 
 # ── SPI Buses ──────────────────────────────────────────
 spi:
